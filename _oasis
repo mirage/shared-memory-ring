@@ -1,0 +1,33 @@
+OASISFormat: 0.2
+Name:        shared-memory-ring
+Version:     0.1
+Synopsis:    Xen-style shared memory rings
+Authors:     Anil Madhavapeddy, David Scott
+License:     ISC
+Plugins:     META (0.2)
+BuildTools:  ocamlbuild
+
+Flag tests
+  Description:        Build and run tests
+  Default:            true
+
+Library shared-memory-ring
+  CompiledObject:     best
+  Path:               lib
+  Findlibname:        shared-memory-ring
+  Modules:            Ring
+  BuildDepends:       cstruct, cstruct.syntax
+
+Executable ring_test
+  CompiledObject:     best
+  Path:               lib_test
+  MainIs:             ring_test.ml
+  Build$:             flag(tests)
+  Custom:             true
+  Install:            false
+  BuildDepends:       lwt, lwt.unix, shared-memory-ring, oUnit
+
+Test ring_test
+  Run$:               flag(tests)
+  Command:            $ring_test
+  WorkingDirectory:   lib_test
