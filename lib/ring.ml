@@ -92,20 +92,12 @@ module Front = struct
     mutable req_prod_pvt: int;
     mutable rsp_cons: int;
     sring: sring;
-(*
-    wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
-    waiters: unit Lwt.u Lwt_sequence.t;
-*)
   }
 
   let init ~sring =
     let req_prod_pvt = 0 in
     let rsp_cons = 0 in
-(*
-    let wakers = Hashtbl.create 7 in
-    let waiters = Lwt_sequence.create () in
-*)
-    { req_prod_pvt; rsp_cons; sring (*; wakers; waiters *) }
+    { req_prod_pvt; rsp_cons; sring }
 
   let slot t idx = slot t.sring idx
   let nr_ents t = t.sring.nr_ents
@@ -151,66 +143,6 @@ module Front = struct
     done;
     if check_for_responses t then ack_responses t fn
 
-  let poll t respfn =
-    ack_responses t (fun slot ->
-      let id, resp = respfn slot in
-(*
-      try
-         let u = Hashtbl.find t.wakers id in
-         Hashtbl.remove t.wakers id;
-         Lwt.wakeup u resp
-       with Not_found ->
-         printf "RX: ack id wakener not found\n%!"
-*)
-()
-    );
-(*
-    (* Check for any sleepers waiting for free space *)
-    match Lwt_sequence.take_opt_l t.waiters with
-    |None -> ()
-    |Some u -> Lwt.wakeup u ()
-*)
-()
-
-(*
-  let wait_for_free_slot t =
-    if get_free_requests t > 0 then
-      return ()
-    else begin
-      let th, u = Lwt.task () in
-      let node = Lwt_sequence.add_r u t.waiters in
-      Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-      th
-    end 
-
-  let rec push_request_and_wait t reqfn =
-    if get_free_requests t > 0 then begin
-      let slot_id = next_req_id t in
-      let slot = slot t slot_id in
-      let th,u = Lwt.task () in
-      let id = reqfn slot in
-      Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
-      Hashtbl.add t.wakers id u;
-      th
-    end else begin
-      let th,u = Lwt.task () in
-      let node = Lwt_sequence.add_r u t.waiters in
-      Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-      th >>
-      push_request_and_wait t reqfn
-    end
-
-   let push_request_async t reqfn freefn =
-     lwt () = wait_for_free_slot t in
-     let slot_id = next_req_id t in
-     let slot = slot t slot_id in
-     let th,u = Lwt.task () in
-     let id = reqfn slot in
-     Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
-     Hashtbl.add t.wakers id u;
-     let _ = th >> return (freefn ()) in
-     return ()
-*)
 end
 
 module Back = struct
@@ -219,20 +151,12 @@ module Back = struct
     mutable rsp_prod_pvt: int;
     mutable req_cons: int;
     sring: sring;
-(*
-    wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
-    waiters: unit Lwt.u Lwt_sequence.t;
-*)
   }
 
   let init ~sring =
     let rsp_prod_pvt = 0 in
     let req_cons = 0 in
-(*
-    let wakers = Hashtbl.create 7 in
-    let waiters = Lwt_sequence.create () in
-*)
-    { rsp_prod_pvt; req_cons; sring (*; wakers; waiters*) }
+    { rsp_prod_pvt; req_cons; sring }
 
   let slot t idx = slot t.sring idx
 

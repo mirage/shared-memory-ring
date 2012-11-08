@@ -81,29 +81,6 @@ module Front : sig
       @return true if an event channel notification is required
     *)
   val push_requests_and_check_notify : ('a,'b) t -> bool
-
-(*
-  (** Given a function {[fn]} which writes to a slot and returns
-      the request id, this will wait for a free request slot,
-      write the request, and return with the response when it
-      is available.
-      @param fn Function that writes to a request slot and returns the request id
-      @return Thread which returns the response value to the input request
-    *)
-  val push_request_and_wait : ('a,'b) t -> (buf -> 'b) -> 'a Lwt.t
-*)
-  (** Poll the ring for responses, and wake up any threads that are
-      sleeping (as a result of calling {[push_request_and_wait]}).
-    *)
-  val poll : ('a,'b) t -> (buf -> ('b * 'a)) -> unit
-
-(*
-  (** Wait for free slot on the ring *)
-  val wait_for_free_slot : ('a,'b) t -> unit Lwt.t
-
-  (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
-  val push_request_async : ('a,'b) t -> (buf -> 'b) -> (unit -> unit) -> unit Lwt.t 
-*)
 end
 
 module Back : sig
