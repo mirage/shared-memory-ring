@@ -32,3 +32,6 @@
 <lib_test/*.ml{,i}>: pkg_cstruct.syntax
 <lib_test/ring_test.{native,byte}>: custom
 # OASIS_STOP
+true: annot
+<*/*>: syntax_camlp4o
+<lib/ring>: pkg_cstruct.syntax
