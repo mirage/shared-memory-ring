@@ -14,8 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Lwt
 open Printf
+
+type buf = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+let sub t off len = Bigarray.Array1.sub t off len
+
+let length t = Bigarray.Array1.dim t
 
 let rec pow2 = function
   | 0 -> 1
@@ -38,26 +43,16 @@ cstruct ring_hdr {
   uint64_t stuff
 } as little_endian
 
-(* Allocate a multi-page ring, returning the grants and pages *)
-let allocate ~domid ~order =
-  lwt gnt = Gnttab.get () in
-  let ring = Io_page.get ~pages_per_block:(pow2 order) () in
-
+let initialise ring =
   (* initialise the *_event fields to 1, and the rest to 0 *)
   set_ring_hdr_req_prod ring 0l;
   set_ring_hdr_req_event ring 1l;
   set_ring_hdr_rsp_prod ring 0l;
   set_ring_hdr_rsp_event ring 1l;
-  set_ring_hdr_stuff ring 0L;
-
-  let pages = Io_page.to_pages ring in
-  lwt gnts = Gnttab.get_n (List.length pages) in
-  let perm = Gnttab.RW in
-  List.iter (fun (gnt, page) -> Gnttab.grant_access ~domid ~perm gnt page) (List.combine gnts pages);
-  return (gnts, ring)
+  set_ring_hdr_stuff ring 0L
 
 type sring = {
-  buf: Io_page.t;   (* Overall I/O buffer *)
+  buf: buf;         (* Overall I/O buffer *)
   header_size: int; (* Header of shared ring variables, in bits *)
   idx_size: int;    (* Size in bits of an index slot *)
   nr_ents: int;     (* Number of index entries *)
@@ -70,7 +65,7 @@ let of_buf ~buf ~idx_size ~name =
   let round_down_to_nearest_2 x =
     int_of_float (2. ** (floor ( (log (float x)) /. (log 2.)))) in
   (* Free space in shared ring after header is accounted for *)
-  let free_bytes = Io_page.length buf - header_size in
+  let free_bytes = length buf - header_size in
   let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
   { name; buf; idx_size; nr_ents; header_size }
 
@@ -89,7 +84,7 @@ let slot sring idx =
   (* TODO should precalculate these and store in the sring? this is fast-path *)
   let idx = idx land (sring.nr_ents - 1) in
   let off = sring.header_size + (idx * sring.idx_size) in
-  Io_page.sub sring.buf off sring.idx_size
+  sub sring.buf off sring.idx_size
 
 module Front = struct
 
@@ -97,16 +92,20 @@ module Front = struct
     mutable req_prod_pvt: int;
     mutable rsp_cons: int;
     sring: sring;
+(*
     wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
     waiters: unit Lwt.u Lwt_sequence.t;
+*)
   }
 
   let init ~sring =
     let req_prod_pvt = 0 in
     let rsp_cons = 0 in
+(*
     let wakers = Hashtbl.create 7 in
     let waiters = Lwt_sequence.create () in
-    { req_prod_pvt; rsp_cons; sring; wakers; waiters }
+*)
+    { req_prod_pvt; rsp_cons; sring (*; wakers; waiters *) }
 
   let slot t idx = slot t.sring idx
   let nr_ents t = t.sring.nr_ents
@@ -155,18 +154,25 @@ module Front = struct
   let poll t respfn =
     ack_responses t (fun slot ->
       let id, resp = respfn slot in
+(*
       try
          let u = Hashtbl.find t.wakers id in
          Hashtbl.remove t.wakers id;
          Lwt.wakeup u resp
        with Not_found ->
          printf "RX: ack id wakener not found\n%!"
+*)
+()
     );
+(*
     (* Check for any sleepers waiting for free space *)
     match Lwt_sequence.take_opt_l t.waiters with
     |None -> ()
     |Some u -> Lwt.wakeup u ()
+*)
+()
 
+(*
   let wait_for_free_slot t =
     if get_free_requests t > 0 then
       return ()
@@ -204,6 +210,7 @@ module Front = struct
      Hashtbl.add t.wakers id u;
      let _ = th >> return (freefn ()) in
      return ()
+*)
 end
 
 module Back = struct
@@ -212,16 +219,20 @@ module Back = struct
     mutable rsp_prod_pvt: int;
     mutable req_cons: int;
     sring: sring;
+(*
     wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
     waiters: unit Lwt.u Lwt_sequence.t;
+*)
   }
 
   let init ~sring =
     let rsp_prod_pvt = 0 in
     let req_cons = 0 in
+(*
     let wakers = Hashtbl.create 7 in
     let waiters = Lwt_sequence.create () in
-    { rsp_prod_pvt; req_cons; sring; wakers; waiters }
+*)
+    { rsp_prod_pvt; req_cons; sring (*; wakers; waiters*) }
 
   let slot t idx = slot t.sring idx
 
@@ -264,31 +275,20 @@ module Back = struct
     done;
     if check_for_requests t then ack_requests t fn
 
-  let service_thread t evtchn fn =
-    let rec inner () =
-      ack_requests t fn;
-      Activations.wait evtchn >>
-      inner ()
-    in inner ()
 end
 
 (* Raw ring handling section *)
 (* TODO both of these can be combined into one set of bindings now *)
 module Console = struct
     type t
-    let initial_grant_num : Gnttab.r = Gnttab.of_int32 2l
     external start_page: unit -> t = "caml_console_start_page"
     external zero: t -> unit = "caml_console_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_console_ring_write"
     external unsafe_read: t -> string -> int -> int = "caml_console_ring_read"
-    let alloc_initial () =
-      let page = start_page () in
-      initial_grant_num, page
 end
 
 module Xenstore = struct
-    type t = Io_page.t
-    let initial_grant_num : Gnttab.r = Gnttab.of_int32 1l
+    type t = buf
     external start_page: unit -> t = "caml_xenstore_start_page"
     let of_buf t = t
     external zero: t -> unit = "caml_xenstore_ring_init"
@@ -298,9 +298,5 @@ module Xenstore = struct
 		external unsafe_write : t -> string -> int -> int = "caml_xenstore_back_ring_write"
 		external unsafe_read : t -> string -> int -> int = "caml_xenstore_back_ring_read"
 	end
-    let alloc_initial () =
-      let page = start_page () in
-      zero page;
-      initial_grant_num, page
 end
 

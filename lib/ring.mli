@@ -14,20 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Allocate contiguous I/O pages initialised to contain an empty ring,
-    that are shared with domain number {[domid]}.
-    @param domid domain id to share the I/O page with
-    @param order request 2 ** order contiguous pages
-    @return Grant table entries and shared pages
-  *)
-val allocate : domid:int -> order:int -> (Gnttab.r list * Io_page.t) Lwt.t
-
 (** Shared ring handling to communicate with other Xen domains *)
+
+type buf = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
 (** Abstract type for a shared ring *)
 type sring
 
-(** Given a buffer [buf] comprising pre-allocated contiguous
+(** Given a buf [buf] comprising pre-allocated contiguous
     I/O pages, return an [sring] where the maximum size of each
     request/response is {[idx_size]}.
     @param buf pre-allocated contiguous I/O pages
@@ -35,7 +29,7 @@ type sring
     @param name Name of the shared ring, for pretty-printing
     @return shared ring value
   *)
-val of_buf : buf:Io_page.t -> idx_size:int -> name:string -> sring
+val of_buf : buf:buf -> idx_size:int -> name:string -> sring
 
 (** The front-end of the shared ring, which issues requests and reads
     responses from the remote domain. 
@@ -52,10 +46,10 @@ module Front : sig
   val init : sring:sring -> ('a,'b) t
 
   (** Retrieve the request/response slot at the specified index as
-    * an Io_page.t.
+    * an buf.
     * @param idx Index to retrieve, should be less than nr_ents
     *)
-  val slot : ('a,'b) t -> int -> Io_page.t
+  val slot : ('a,'b) t -> int -> buf
 
   (** Retrieve number of slots in the shared ring *)
   val nr_ents : ('a,'b) t -> int
@@ -76,7 +70,7 @@ module Front : sig
     * the responses and wake up any sleeping threads that were
     * waiting for that particular response.
     *)
-  val ack_responses : ('a,'b) t -> (Io_page.t -> unit) -> unit
+  val ack_responses : ('a,'b) t -> (buf -> unit) -> unit
 
   (** Update the shared request producer *)
   val push_requests : ('a,'b) t -> unit
@@ -88,6 +82,7 @@ module Front : sig
     *)
   val push_requests_and_check_notify : ('a,'b) t -> bool
 
+(*
   (** Given a function {[fn]} which writes to a slot and returns
       the request id, this will wait for a free request slot,
       write the request, and return with the response when it
@@ -95,18 +90,20 @@ module Front : sig
       @param fn Function that writes to a request slot and returns the request id
       @return Thread which returns the response value to the input request
     *)
-  val push_request_and_wait : ('a,'b) t -> (Io_page.t -> 'b) -> 'a Lwt.t
-
+  val push_request_and_wait : ('a,'b) t -> (buf -> 'b) -> 'a Lwt.t
+*)
   (** Poll the ring for responses, and wake up any threads that are
       sleeping (as a result of calling {[push_request_and_wait]}).
     *)
-  val poll : ('a,'b) t -> (Io_page.t -> ('b * 'a)) -> unit
+  val poll : ('a,'b) t -> (buf -> ('b * 'a)) -> unit
 
+(*
   (** Wait for free slot on the ring *)
   val wait_for_free_slot : ('a,'b) t -> unit Lwt.t
-  
+
   (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
-  val push_request_async : ('a,'b) t -> (Io_page.t -> 'b) -> (unit -> unit) -> unit Lwt.t 
+  val push_request_async : ('a,'b) t -> (buf -> 'b) -> (unit -> unit) -> unit Lwt.t 
+*)
 end
 
 module Back : sig
@@ -123,7 +120,7 @@ module Back : sig
     * a Io_page.
     * @param idx Index to retrieve, should be less than nr_ents
     *)
-  val slot : ('a,'b) t -> int -> Io_page.t
+  val slot : ('a,'b) t -> int -> buf
 
   (** Retrieve number of slots in the shared ring *)
   val nr_ents : ('a,'b) t -> int
@@ -140,17 +137,12 @@ module Back : sig
       @return true if an event channel notification is required
     *)
   val push_responses_and_check_notify : ('a,'b) t -> bool
-
-  (** Monitor the ring for requests, calling the given handler
-      function for each one. *)
-  val service_thread : ('a,'b) t -> int -> (Io_page.t -> unit) -> unit Lwt.t
 end
 
 module Console : sig
   type t
   external unsafe_write : t -> string -> int -> int = "caml_console_ring_write"
   external unsafe_read : t -> string -> int -> int = "caml_console_ring_read"
-  val alloc_initial : unit -> Gnttab.r * t
 end
 
 module Xenstore : sig
@@ -161,6 +153,5 @@ module Xenstore : sig
 	  val unsafe_write : t -> string -> int -> int
 	  val unsafe_read : t -> string -> int -> int
   end
-  val alloc_initial : unit -> Gnttab.r * t
-  val of_buf : Io_page.t -> t
+  val of_buf : buf -> t
 end
