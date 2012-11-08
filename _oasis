@@ -18,6 +18,14 @@ Library shared_memory_ring
   Modules:            Ring
   BuildDepends:       cstruct, cstruct.syntax
 
+Library lwt_shared_memory_ring
+  CompiledObject:     best
+  Path:               lwt
+  Findlibname:        lwt
+  Findlibparent:      shared_memory_ring
+  Modules:            Lwt_ring
+  BuildDepends:       shared-memory-ring, lwt, lwt.syntax
+
 Executable ring_test
   CompiledObject:     best
   Path:               lib_test

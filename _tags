@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: f5016ee3022e612b9aa81ab2e6998ec4)
+# DO NOT EDIT (digest: 96a31074b8114034e931ffe628935a7f)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -17,6 +17,13 @@
 "lib/shared_memory_ring.cmxs": use_shared_memory_ring
 <lib/*.ml{,i}>: pkg_cstruct
 <lib/*.ml{,i}>: pkg_cstruct.syntax
+# Library lwt_shared_memory_ring
+"lwt/lwt_shared_memory_ring.cmxs": use_lwt_shared_memory_ring
+<lwt/*.ml{,i}>: use_shared_memory_ring
+<lwt/*.ml{,i}>: pkg_lwt
+<lwt/*.ml{,i}>: pkg_lwt.syntax
+<lwt/*.ml{,i}>: pkg_cstruct
+<lwt/*.ml{,i}>: pkg_cstruct.syntax
 # Executable ring_test
 <lib_test/ring_test.{native,byte}>: use_shared_memory_ring
 <lib_test/ring_test.{native,byte}>: pkg_lwt
@@ -35,3 +42,4 @@
 true: annot
 <*/*>: syntax_camlp4o
 <lib/ring>: pkg_cstruct.syntax
+<lwt/lwt_ring>: pkg_lwt.syntax
