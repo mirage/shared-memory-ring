@@ -25,7 +25,7 @@ Executable ring_test
   Build$:             flag(tests)
   Custom:             true
   Install:            false
-  BuildDepends:       lwt, lwt.unix, shared_memory_ring, oUnit
+  BuildDepends:       lwt, lwt.unix, shared-memory-ring, oUnit
 
 Test ring_test
   Run$:               flag(tests)
