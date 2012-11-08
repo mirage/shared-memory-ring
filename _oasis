@@ -17,7 +17,7 @@ Library shared_memory_ring
   Findlibname:        shared-memory-ring
   Modules:            Ring
   BuildDepends:       cstruct, cstruct.syntax
-  CSources:           ring_stubs.c
+  CSources:           ring_stubs.c, console.h, xenstore.h, barrier.h
 
 Library lwt_shared_memory_ring
   CompiledObject:     best

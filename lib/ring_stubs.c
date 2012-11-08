@@ -14,18 +14,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <mini-os/x86/os.h>
-#include <mini-os/gnttab.h>
-#include <mini-os/events.h>
-#include <xen/io/netif.h>
-#include <xen/io/blkif.h>
-#include <xen/io/console.h>
-#include <xen/io/xs_wire.h>
+#include <stdint.h>
+#include <assert.h>
 
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
 #include <caml/bigarray.h>
+
+#include "console.h"
+#include "xenstore.h"
+#include "barrier.h"
+
+#define xen_mb() mb()
+#define xen_wmb() wmb()
+
+typedef unsigned int RING_IDX; /* from ring.h */
+
+extern void *memset(void *s, int c, size_t n);
+
+#define PAGE_SIZE 4096
 
 /* Raw ring operations
    These have no request/response structs, just byte strings
@@ -48,7 +56,7 @@ caml_##xname##_ring_write(value v_ptr, value v_str, value v_len) \
    cons = intf->xout##_cons; \
    prod = intf->xout##_prod; \
    mb(); \
-   BUG_ON((prod - cons) > sizeof(intf->xout)); \
+   /* BUG_ON((prod - cons) > sizeof(intf->xout));*/				\
    while ((sent < len) && ((prod - cons) < sizeof(intf->xout))) \
      intf->xout[MASK_XENCONS_IDX(prod++, intf->xout)] = data[sent++]; \
    wmb(); \
@@ -65,7 +73,7 @@ caml_##xname##_ring_read(value v_ptr, value v_str, value v_len) \
    cons = intf->xin##_cons; \
    prod = intf->xin##_prod; \
    mb(); \
-   BUG_ON((prod - cons) > sizeof(intf->xin)); \
+   /* BUG_ON((prod - cons) > sizeof(intf->xin));*/	\
    while (cons != prod && pos < len) \
      data[pos++] = intf->xin[MASK_XENCONS_IDX(cons++, intf->xin)]; \
    mb(); \
@@ -117,7 +125,7 @@ CAMLprim value
 caml_sring_push_requests(value v_sring, value v_req_prod_pvt)
 {
   struct sring *sring = SRING_VAL(v_sring);
-  ASSERT(((unsigned long)sring % PAGE_SIZE) == 0);
+  assert(((unsigned long)sring % PAGE_SIZE) == 0);
   xen_wmb(); /* ensure requests are seen before the index is updated */
   sring->req_prod = Int_val(v_req_prod_pvt);
   return Val_unit;
