@@ -11,7 +11,7 @@ Flag tests
   Description:        Build and run tests
   Default:            true
 
-Library shared-memory-ring
+Library shared_memory_ring
   CompiledObject:     best
   Path:               lib
   Findlibname:        shared-memory-ring
@@ -25,7 +25,7 @@ Executable ring_test
   Build$:             flag(tests)
   Custom:             true
   Install:            false
-  BuildDepends:       lwt, lwt.unix, shared-memory-ring, oUnit
+  BuildDepends:       lwt, lwt.unix, shared_memory_ring, oUnit
 
 Test ring_test
   Run$:               flag(tests)
