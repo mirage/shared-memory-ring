@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: bae07945bb6b36a5fbd869784dbe74d0) *)
+(* DO NOT EDIT (digest: e7dc344b7ccea63a21f8b6f64cfab75a) *)
 module OASISGettext = struct
 # 21 "/home/djs/.opam/system/build/oasis.0.3.0/src/oasis/OASISGettext.ml"
 
@@ -480,7 +480,7 @@ let package_default =
      MyOCamlbuildBase.lib_ocaml = [("shared_memory_ring", ["lib"])];
      lib_c = [];
      flags = [];
-     includes = [];
+     includes = [("lib_test", ["lib"])];
      }
   ;;
 
