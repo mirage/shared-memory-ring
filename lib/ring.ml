@@ -205,7 +205,6 @@ end
 (* TODO both of these can be combined into one set of bindings now *)
 module Console = struct
     type t
-    external start_page: unit -> t = "caml_console_start_page"
     external zero: t -> unit = "caml_console_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_console_ring_write"
     external unsafe_read: t -> string -> int -> int = "caml_console_ring_read"
@@ -213,7 +212,6 @@ end
 
 module Xenstore = struct
     type t = buf
-    external start_page: unit -> t = "caml_xenstore_start_page"
     let of_buf t = t
     external zero: t -> unit = "caml_xenstore_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_xenstore_ring_write"
