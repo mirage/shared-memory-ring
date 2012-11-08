@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: b14c209faebd0fea83dce9c076350df6)
+version = "0.1"
+description = "Xen-style shared memory rings"
+requires = "cstruct cstruct.syntax"
+archive(byte) = "shared_memory_ring.cma"
+archive(byte, plugin) = "shared_memory_ring.cma"
+archive(native) = "shared_memory_ring.cmxa"
+archive(native, plugin) = "shared_memory_ring.cmxs"
+exists_if = "shared_memory_ring.cma"
+# OASIS_STOP
+
