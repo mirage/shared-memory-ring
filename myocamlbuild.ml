@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 3f0c78de5fe4af2d7a6ec54cf43031e0) *)
+(* DO NOT EDIT (digest: 4d6615a36280c722b16baf22e5cae098) *)
 module OASISGettext = struct
 # 21 "/home/djs/.opam/system/build/oasis.0.3.0/src/oasis/OASISGettext.ml"
 
@@ -479,15 +479,16 @@ let package_default =
   {
      MyOCamlbuildBase.lib_ocaml =
        [("shared_memory_ring", ["lib"]); ("lwt_shared_memory_ring", ["lwt"])];
-     lib_c = [];
+     lib_c = [("shared_memory_ring", "lib", [])];
      flags = [];
      includes =
-       [("lwt_test", ["lib"]); ("lwt", ["lib"]); ("lib_test", ["lib"])];
+       [("lwt_test", ["lib"; "lwt"]); ("lwt", ["lib"]); ("lib_test", ["lib"])
+       ];
      }
   ;;
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
-# 492 "myocamlbuild.ml"
+# 493 "myocamlbuild.ml"
 (* OASIS_STOP *)
 Ocamlbuild_plugin.dispatch dispatch_default;;

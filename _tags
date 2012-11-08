@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 6ba82568dca491e09eb46ce511c57cc6)
+# DO NOT EDIT (digest: e666e43e5d7ba3ab33d93f54b70ded55)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -15,8 +15,11 @@
 "_darcs": not_hygienic
 # Library shared_memory_ring
 "lib/shared_memory_ring.cmxs": use_shared_memory_ring
+<lib/shared_memory_ring.{cma,cmxa}>: use_libshared_memory_ring_stubs
 <lib/*.ml{,i}>: pkg_cstruct
 <lib/*.ml{,i}>: pkg_cstruct.syntax
+"lib/ring_stubs.c": pkg_cstruct
+"lib/ring_stubs.c": pkg_cstruct.syntax
 # Library lwt_shared_memory_ring
 "lwt/lwt_shared_memory_ring.cmxs": use_lwt_shared_memory_ring
 <lwt/*.ml{,i}>: use_shared_memory_ring
@@ -39,16 +42,20 @@
 <lib_test/*.ml{,i}>: pkg_cstruct.syntax
 <lib_test/ring_test.{native,byte}>: custom
 # Executable lwt_test
+<lwt_test/lwt_test.{native,byte}>: use_lwt_shared_memory_ring
 <lwt_test/lwt_test.{native,byte}>: use_shared_memory_ring
 <lwt_test/lwt_test.{native,byte}>: pkg_lwt
 <lwt_test/lwt_test.{native,byte}>: pkg_lwt.unix
 <lwt_test/lwt_test.{native,byte}>: pkg_oUnit
+<lwt_test/lwt_test.{native,byte}>: pkg_lwt.syntax
 <lwt_test/lwt_test.{native,byte}>: pkg_cstruct
 <lwt_test/lwt_test.{native,byte}>: pkg_cstruct.syntax
+<lwt_test/*.ml{,i}>: use_lwt_shared_memory_ring
 <lwt_test/*.ml{,i}>: use_shared_memory_ring
 <lwt_test/*.ml{,i}>: pkg_lwt
 <lwt_test/*.ml{,i}>: pkg_lwt.unix
 <lwt_test/*.ml{,i}>: pkg_oUnit
+<lwt_test/*.ml{,i}>: pkg_lwt.syntax
 <lwt_test/*.ml{,i}>: pkg_cstruct
 <lwt_test/*.ml{,i}>: pkg_cstruct.syntax
 <lwt_test/lwt_test.{native,byte}>: custom
@@ -57,3 +64,4 @@ true: annot
 <*/*>: syntax_camlp4o
 <lib/ring>: pkg_cstruct.syntax
 <lwt/lwt_ring>: pkg_lwt.syntax
+<lwt_test/lwt_test>: pkg_lwt.syntax

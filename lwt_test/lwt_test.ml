@@ -14,10 +14,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Lwt
 open OUnit
 
 let ( |> ) a b = b a
 let id x = x
+
+let alloc_page () =
+	Bigarray.Array1.create Bigarray.char Bigarray.c_layout 4096
+
+let one_request_response () =
+	let page = alloc_page () in
+	let sring = Ring.of_buf ~buf:page ~idx_size:1 ~name:"test" in
+	let front = Ring.Front.init sring in
+
+	let client = Lwt_ring.Client.init front in
+	let request_th = Lwt_ring.Client.push_request_and_wait client (fun _ -> ()) in
+	()
+
 
 let _ =
   let verbose = ref false in

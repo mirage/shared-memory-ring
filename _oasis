@@ -17,6 +17,7 @@ Library shared_memory_ring
   Findlibname:        shared-memory-ring
   Modules:            Ring
   BuildDepends:       cstruct, cstruct.syntax
+  CSources:           ring_stubs.c
 
 Library lwt_shared_memory_ring
   CompiledObject:     best
@@ -42,7 +43,7 @@ Executable lwt_test
   Build$:             flag(tests)
   Custom:             true
   Install:            false
-  BuildDepends:       lwt, lwt.unix, shared-memory-ring, oUnit
+  BuildDepends:       lwt, lwt.unix, shared-memory-ring, shared-memory-ring.lwt, oUnit
 
 Test ring_test
   Run$:               flag(tests)
