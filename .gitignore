@@ -1,0 +1,9 @@
+*~
+#*
+*#
+_build/
+*.native
+*.bin
+setup.data
+setup.log
+
