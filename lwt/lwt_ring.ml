@@ -61,6 +61,8 @@ module Client = struct
       let slot = Ring.Front.slot t.ring slot_id in
       let th,u = Lwt.task () in
       let id = reqfn slot in
+      if Ring.Front.push_requests_and_check_notify t.ring
+      then printf "TX: need to signal event channel\n%!";
       Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
       Hashtbl.add t.wakers id u;
       th
@@ -78,6 +80,8 @@ module Client = struct
      let slot = Ring.Front.slot t.ring slot_id in
      let th,u = Lwt.task () in
      let id = reqfn slot in
+     if Ring.Front.push_requests_and_check_notify t.ring
+     then printf "TX: need to signal event channel\n%!";
      Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
      Hashtbl.add t.wakers id u;
      let _ = th >> return (freefn ()) in
