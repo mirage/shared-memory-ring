@@ -120,6 +120,10 @@ module Back : sig
       which we should immediately process without waiting for an
       event notification. *)
   val more_to_do : ('a, 'b) t -> bool
+
+  (** [ack_requests t fn] applies [fn slot] to each [slot] containing
+      a new request *)
+  val ack_requests : ('a, 't) t -> (buf -> unit) -> unit
 end
 
 module Console : sig

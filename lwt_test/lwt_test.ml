@@ -27,9 +27,18 @@ let one_request_response () =
 	let page = alloc_page () in
 	let sring = Ring.of_buf ~buf:page ~idx_size:1 ~name:"test" in
 	let front = Ring.Front.init sring in
+	let back = Ring.Back.init sring in
 
 	let client = Lwt_ring.Client.init front in
 	let request_th = Lwt_ring.Client.push_request_and_wait client (fun _ -> ()) in
+	assert_equal ~msg:"more_to_do" ~printer:string_of_bool (Ring.Back.more_to_do back) true;
+
+	let finished = ref false in
+	Ring.Back.ack_requests back (fun _ -> finished := true);
+	assert_equal ~msg:"ack_requests" ~printer:string_of_bool (!finished) true;
+
+	assert_equal ~msg:"more_to_do" ~printer:string_of_bool (Ring.Back.more_to_do back) false;
+	assert_equal ~msg:"is_sleeping" ~printer:string_of_bool (Lwt.is_sleeping request_th) false;
 	()
 
 
@@ -42,5 +51,6 @@ let _ =
 
   let suite = "ring" >:::
     [
+		"one_request_response" >:: one_request_response
     ] in
   run_test_tt ~verbose:!verbose suite

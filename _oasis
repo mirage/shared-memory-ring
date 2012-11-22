@@ -49,3 +49,8 @@ Test ring_test
   Run$:               flag(tests)
   Command:            $ring_test
   WorkingDirectory:   lib_test
+
+Test lwt_test
+  Run$:               flag(tests)
+  Command:            $lwt_test
+  WorkingDirectory:   lwt_test
