@@ -33,18 +33,30 @@ let one_request_response () =
 	assert_equal ~msg:"more_to_do" ~printer:string_of_bool false (Ring.Back.more_to_do back);
 
 	let client = Lwt_ring.Client.init front in
-	let request_th = Lwt_ring.Client.push_request_and_wait client (fun _ -> ()) in
+	let id = () in
+	let request_th = Lwt_ring.Client.push_request_and_wait client (fun _ -> id) in
 	Printf.fprintf stdout "%s\n%!" (Ring.Back.to_string back);
 	assert_equal ~msg:"more_to_do" ~printer:string_of_bool true (Ring.Back.more_to_do back);
 
 	let finished = ref false in
 	Ring.Back.ack_requests back (fun _ -> finished := true);
-	assert_equal ~msg:"ack_requests" ~printer:string_of_bool (!finished) true;
+	assert_equal ~msg:"ack_requests" ~printer:string_of_bool true (!finished);
+
+	let _ = Ring.Back.next_res_id back in
+
+	Ring.Back.push_responses back;
+	Printf.fprintf stdout "%s\n%!" (Ring.Back.to_string back);
+
+    let replied = ref false in
+	Lwt_ring.Client.poll client (fun _ -> replied := true; id, ());
+	assert_equal ~msg:"poll" ~printer:string_of_bool true (!replied);
 
 	assert_equal ~msg:"more_to_do" ~printer:string_of_bool false (Ring.Back.more_to_do back);
+	lwt () = Lwt.choose [ Lwt_unix.sleep 5.; request_th ] in
 	assert_equal ~msg:"is_sleeping" ~printer:string_of_bool false (Lwt.is_sleeping request_th);
-	()
+	return ()
 
+let one_request_response () = Lwt_main.run (one_request_response ())
 
 let _ =
   let verbose = ref false in
