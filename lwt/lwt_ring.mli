@@ -49,3 +49,21 @@ module Client : sig
     *)
   val poll : ('a,'b) t -> (buf -> ('b * 'a)) -> unit
 end
+
+(** The server back-end connection to the shared ring *)
+module Server : sig
+
+  (** 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
+  type ('a,'b) t
+
+  (** Given a shared ring, initialise an lwt server
+    * @param ring Shared ring frontend to attach to
+    * @return stateful ring server
+    *)
+  val init : ('a, 'b) Ring.Back.t -> ('a,'b) t
+
+  (** [push_response t fn] finds a free slot and applies it to [fn],
+      signalling the client that a response is ready. *)
+  val push_response : ('a, 'b) t -> (buf -> unit) -> unit
+
+end

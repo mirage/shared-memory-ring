@@ -88,3 +88,22 @@ module Client = struct
      return ()
 
 end
+
+module Server = struct
+  type ('a, 'b) t = {
+    ring: ('a, 'b) Ring.Back.t;
+  }
+
+  let init ring =
+    { ring }
+
+  let push_response t rspfn =
+	  let slot_id = Ring.Back.next_res_id t.ring in
+	  let slot = Ring.Back.slot t.ring slot_id in
+	  rspfn slot;
+	  if Ring.Back.push_responses_and_check_notify t.ring
+	  then printf "TX: need to signal event channel\n%!"
+
+  let poll t fn =
+    Ring.Back.ack_requests t.ring fn
+end

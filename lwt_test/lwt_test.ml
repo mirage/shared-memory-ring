@@ -33,6 +33,8 @@ let one_request_response () =
 	assert_equal ~msg:"more_to_do" ~printer:string_of_bool false (Ring.Back.more_to_do back);
 
 	let client = Lwt_ring.Client.init front in
+	let server = Lwt_ring.Server.init back in
+
 	let id = () in
 	let request_th = Lwt_ring.Client.push_request_and_wait client (fun _ -> id) in
 	Printf.fprintf stdout "%s\n%!" (Ring.Back.to_string back);
@@ -42,9 +44,8 @@ let one_request_response () =
 	Ring.Back.ack_requests back (fun _ -> finished := true);
 	assert_equal ~msg:"ack_requests" ~printer:string_of_bool true (!finished);
 
-	let _ = Ring.Back.next_res_id back in
+	Lwt_ring.Server.push_response server (fun _ -> ());
 
-	Ring.Back.push_responses back;
 	Printf.fprintf stdout "%s\n%!" (Ring.Back.to_string back);
 
     let replied = ref false in
