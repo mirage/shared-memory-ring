@@ -123,7 +123,10 @@ module Back : sig
 
   (** [ack_requests t fn] applies [fn slot] to each [slot] containing
       a new request *)
-  val ack_requests : ('a, 't) t -> (buf -> unit) -> unit
+  val ack_requests : ('a, 'b) t -> (buf -> unit) -> unit
+
+  (** pretty-print ring metadata *)
+  val to_string : ('a, 'b) t -> string
 end
 
 module Console : sig

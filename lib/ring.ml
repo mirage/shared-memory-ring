@@ -206,7 +206,7 @@ module Back = struct
 	  else
 		  has_unconsumed_requests t
 
-  let string_of_state t =
+  let to_string t =
 	  let req_prod = sring_req_prod t.sring in
 	  let rsp_prod = sring_rsp_prod t.sring in
 	  let req_event = sring_req_event t.sring in
