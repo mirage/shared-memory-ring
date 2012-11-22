@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2012 Citrix Systems, Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -114,6 +115,11 @@ module Back : sig
       @return true if an event channel notification is required
     *)
   val push_responses_and_check_notify : ('a,'b) t -> bool
+
+  (** returns true if there are outstanding requests on the ring
+      which we should immediately process without waiting for an
+      event notification. *)
+  val more_to_do : ('a, 'b) t -> bool
 end
 
 module Console : sig

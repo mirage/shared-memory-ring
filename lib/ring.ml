@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2012 Citrix Systems, Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -189,6 +190,29 @@ module Back = struct
     t.rsp_prod_pvt <- t.rsp_prod_pvt + 1;
     s
 
+  let next_slot t =
+      slot t (next_res_id t)
+
+  let final_check_for_requests t =
+	  has_unconsumed_requests t ||
+		  begin
+			  sring_set_req_event t.sring (t.req_cons + 1);
+			  has_unconsumed_requests t
+		  end
+
+  let more_to_do t =
+	  if t.rsp_prod_pvt = t.req_cons then
+		  final_check_for_requests t
+	  else
+		  has_unconsumed_requests t
+
+  let string_of_state t =
+	  let req_prod = sring_req_prod t.sring in
+	  let rsp_prod = sring_rsp_prod t.sring in
+	  let req_event = sring_req_event t.sring in
+	  let rsp_event = sring_rsp_event t.sring in
+	  Printf.sprintf "{ req_prod=%d rsp_prod=%d req_event=%d rsp_event=%d rsp_prod_pvt=%d req_cons=%d }" req_prod rsp_prod req_event rsp_event t.rsp_prod_pvt t.req_cons
+
   let rec ack_requests t fn =
     let req_prod = sring_req_prod t.sring in
     while t.req_cons != req_prod do
@@ -198,7 +222,6 @@ module Back = struct
       fn slot;
     done;
     if check_for_requests t then ack_requests t fn
-
 end
 
 (* Raw ring handling section *)
