@@ -29,16 +29,20 @@ let one_request_response () =
 	let front = Ring.Front.init sring in
 	let back = Ring.Back.init sring in
 
+	Printf.fprintf stdout "%s\n%!" (Ring.Back.to_string back);
+	assert_equal ~msg:"more_to_do" ~printer:string_of_bool false (Ring.Back.more_to_do back);
+
 	let client = Lwt_ring.Client.init front in
 	let request_th = Lwt_ring.Client.push_request_and_wait client (fun _ -> ()) in
-	assert_equal ~msg:"more_to_do" ~printer:string_of_bool (Ring.Back.more_to_do back) true;
+	Printf.fprintf stdout "%s\n%!" (Ring.Back.to_string back);
+	assert_equal ~msg:"more_to_do" ~printer:string_of_bool true (Ring.Back.more_to_do back);
 
 	let finished = ref false in
 	Ring.Back.ack_requests back (fun _ -> finished := true);
 	assert_equal ~msg:"ack_requests" ~printer:string_of_bool (!finished) true;
 
-	assert_equal ~msg:"more_to_do" ~printer:string_of_bool (Ring.Back.more_to_do back) false;
-	assert_equal ~msg:"is_sleeping" ~printer:string_of_bool (Lwt.is_sleeping request_th) false;
+	assert_equal ~msg:"more_to_do" ~printer:string_of_bool false (Ring.Back.more_to_do back);
+	assert_equal ~msg:"is_sleeping" ~printer:string_of_bool false (Lwt.is_sleeping request_th);
 	()
 
 
