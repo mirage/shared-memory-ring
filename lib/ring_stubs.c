@@ -125,7 +125,8 @@ CAMLprim value
 caml_sring_push_requests(value v_sring, value v_req_prod_pvt)
 {
   struct sring *sring = SRING_VAL(v_sring);
-  assert(((unsigned long)sring % PAGE_SIZE) == 0);
+  /* true in xen use-cases but not generally */
+  /* assert(((unsigned long)sring % PAGE_SIZE) == 0); */
   xen_wmb(); /* ensure requests are seen before the index is updated */
   sring->req_prod = Int_val(v_req_prod_pvt);
   return Val_unit;
