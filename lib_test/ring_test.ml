@@ -49,7 +49,7 @@ let with_xenstores f =
 	let b1 = alloc_page () in
 	let b2 = alloc_page () in
 	let a = Ring.Xenstore.of_buf b1 in
-	let b = Ring.C_Xenstore.of_buf b2 in
+	let b = Old_ring.C_Xenstore.of_buf b2 in
 	f b1 b2 a b
 
 let xenstore_init () =
@@ -66,13 +66,13 @@ let xenstore_hello () =
 	with_xenstores
 		(fun b1 b2 a b ->
 			let x = Ring.Xenstore.Front.unsafe_write a msg' in
-			let y = Ring.C_Xenstore.unsafe_write b msg (String.length msg) in
+			let y = Old_ring.C_Xenstore.unsafe_write b msg (String.length msg) in
 			assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
 			let x = Ring.Xenstore.Back.unsafe_read a buf' in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			compare_bufs (Bigarray.Array1.sub buf' 0 x) msg';
-			let x = Ring.C_Xenstore.Back.unsafe_read b buf (String.length buf) in
+			let x = Old_ring.C_Xenstore.Back.unsafe_read b buf (String.length buf) in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			assert_equal (String.sub buf 0 x) msg;
 			()
@@ -82,7 +82,7 @@ let with_consoles f =
 	let b1 = alloc_page () in
 	let b2 = alloc_page () in
 	let a = Ring.Console.of_buf b1 in
-	let b = Ring.C_Console.of_buf b2 in
+	let b = Old_ring.C_Console.of_buf b2 in
 	f b1 b2 a b
 
 let console_init () =
@@ -99,13 +99,13 @@ let console_hello () =
 	with_consoles
 		(fun b1 b2 a b ->
 			let x = Ring.Console.Front.unsafe_write a msg' in
-			let y = Ring.C_Console.unsafe_write b msg (String.length msg) in
+			let y = Old_ring.C_Console.unsafe_write b msg (String.length msg) in
 			assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
 			let x = Ring.Console.Back.unsafe_read a buf' in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			compare_bufs (Bigarray.Array1.sub buf' 0 x) msg';
-			let x = Ring.C_Console.Back.unsafe_read b buf (String.length buf) in
+			let x = Old_ring.C_Console.Back.unsafe_read b buf (String.length buf) in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			assert_equal (String.sub buf 0 x) msg;
 			()
@@ -138,13 +138,13 @@ let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size ~verify () =
 				let written =
 					if use_ocaml
 					then Ring.Console.Front.unsafe_write a (Bigarray.Array1.sub block' !producer can_write)
-					else Ring.C_Console.unsafe_write b (String.sub block !producer can_write) can_write in
+					else Old_ring.C_Console.unsafe_write b (String.sub block !producer can_write) can_write in
 				producer := !producer + written;
 				let read =
 					if use_ocaml
 					then Ring.Console.Back.unsafe_read a (Bigarray.Array1.sub output' !consumed (length - !consumed))
 					else begin
-						let n = Ring.C_Console.Back.unsafe_read b read_chunk read_chunk_size in
+						let n = Old_ring.C_Console.Back.unsafe_read b read_chunk read_chunk_size in
 						begin
 							try
 								String.blit read_chunk 0 output !consumed n

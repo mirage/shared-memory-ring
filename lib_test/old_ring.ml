@@ -369,3 +369,30 @@ module Console = struct
 	module Front = Pipe(Layout)
 	module Back = Pipe(Reverse(Layout))
 end
+
+(* Raw ring handling section *)
+(* TODO both of these can be combined into one set of bindings now *)
+module C_Console = struct
+    type t = buf
+    let of_buf t = t
+    external zero: t -> unit = "caml_console_ring_init"
+    external unsafe_write: t -> string -> int -> int = "caml_console_ring_write"
+    external unsafe_read: t -> string -> int -> int = "caml_console_ring_read"
+	module Back = struct
+		external unsafe_write : t -> string -> int -> int = "caml_console_back_ring_write"
+		external unsafe_read : t -> string -> int -> int = "caml_console_back_ring_read"
+	end
+end
+
+module C_Xenstore = struct
+    type t = buf
+    let of_buf t = t
+    external zero: t -> unit = "caml_xenstore_ring_init"
+    external unsafe_write: t -> string -> int -> int = "caml_xenstore_ring_write"
+    external unsafe_read: t -> string -> int -> int = "caml_xenstore_ring_read"
+	module Back = struct
+		external unsafe_write : t -> string -> int -> int = "caml_xenstore_back_ring_write"
+		external unsafe_read : t -> string -> int -> int = "caml_xenstore_back_ring_read"
+	end
+end
+

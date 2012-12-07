@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: e666e43e5d7ba3ab33d93f54b70ded55)
+# DO NOT EDIT (digest: 44966d449a9ad0f75190dc5ba423e5d1)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -28,6 +28,7 @@
 <lwt/*.ml{,i}>: pkg_cstruct
 <lwt/*.ml{,i}>: pkg_cstruct.syntax
 # Executable ring_test
+<lib_test/ring_test.{native,byte}>: use_libring_test_stubs
 <lib_test/ring_test.{native,byte}>: use_shared_memory_ring
 <lib_test/ring_test.{native,byte}>: pkg_lwt
 <lib_test/ring_test.{native,byte}>: pkg_lwt.unix
@@ -40,6 +41,12 @@
 <lib_test/*.ml{,i}>: pkg_oUnit
 <lib_test/*.ml{,i}>: pkg_cstruct
 <lib_test/*.ml{,i}>: pkg_cstruct.syntax
+"lib_test/old_ring_stubs.c": use_shared_memory_ring
+"lib_test/old_ring_stubs.c": pkg_lwt
+"lib_test/old_ring_stubs.c": pkg_lwt.unix
+"lib_test/old_ring_stubs.c": pkg_oUnit
+"lib_test/old_ring_stubs.c": pkg_cstruct
+"lib_test/old_ring_stubs.c": pkg_cstruct.syntax
 <lib_test/ring_test.{native,byte}>: custom
 # Executable lwt_test
 <lwt_test/lwt_test.{native,byte}>: use_lwt_shared_memory_ring

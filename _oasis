@@ -17,7 +17,7 @@ Library shared_memory_ring
   Findlibname:        shared-memory-ring
   Modules:            Ring
   BuildDepends:       cstruct, cstruct.syntax
-  CSources:           ring_stubs.c, console.h, xenstore.h, barrier.h
+  CSources:           ring_stubs.c, barrier.h
 
 Library lwt_shared_memory_ring
   CompiledObject:     best
@@ -35,6 +35,7 @@ Executable ring_test
   Custom:             true
   Install:            false
   BuildDepends:       lwt, lwt.unix, shared-memory-ring, oUnit
+  CSources:           old_ring_stubs.c, console.h, xenstore.h, barrier.h
 
 Executable lwt_test
   CompiledObject:     best
