@@ -23,6 +23,8 @@ let sub t off len = Bigarray.Array1.sub t off len
 
 let length t = Bigarray.Array1.dim t
 
+module Rpc = struct
+
 let rec pow2 = function
   | 0 -> 1
   | n -> 2 * (pow2 (n - 1))
@@ -222,6 +224,7 @@ module Back = struct
       fn slot;
     done;
     if check_for_requests t then ack_requests t fn
+end
 end
 
 (* Raw ring handling section *)

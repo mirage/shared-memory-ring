@@ -20,7 +20,7 @@ open Printf
 module Client = struct
 
   type ('a, 'b) t = {
-    ring: ('a, 'b) Ring.Front.t;
+    ring: ('a, 'b) Ring.Rpc.Front.t;
     wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
     waiters: unit Lwt.u Lwt_sequence.t;
   }
@@ -31,7 +31,7 @@ module Client = struct
     { ring; wakers; waiters }
 
   let wait_for_free_slot t =
-    if Ring.Front.get_free_requests t.ring > 0 then
+    if Ring.Rpc.Front.get_free_requests t.ring > 0 then
       return ()
     else begin
       let th, u = Lwt.task () in
@@ -41,7 +41,7 @@ module Client = struct
     end 
 
   let poll t respfn =
-    Ring.Front.ack_responses t.ring (fun slot ->
+    Ring.Rpc.Front.ack_responses t.ring (fun slot ->
       let id, resp = respfn slot in
       try
          let u = Hashtbl.find t.wakers id in
@@ -56,12 +56,12 @@ module Client = struct
     |Some u -> Lwt.wakeup u ()
 
   let rec push_request_and_wait t reqfn =
-    if Ring.Front.get_free_requests t.ring > 0 then begin
-      let slot_id = Ring.Front.next_req_id t.ring in
-      let slot = Ring.Front.slot t.ring slot_id in
+    if Ring.Rpc.Front.get_free_requests t.ring > 0 then begin
+      let slot_id = Ring.Rpc.Front.next_req_id t.ring in
+      let slot = Ring.Rpc.Front.slot t.ring slot_id in
       let th,u = Lwt.task () in
       let id = reqfn slot in
-      if Ring.Front.push_requests_and_check_notify t.ring
+      if Ring.Rpc.Front.push_requests_and_check_notify t.ring
       then printf "TX: need to signal event channel\n%!";
       Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
       Hashtbl.add t.wakers id u;
@@ -76,11 +76,11 @@ module Client = struct
 
    let push_request_async t reqfn freefn =
      lwt () = wait_for_free_slot t in
-     let slot_id = Ring.Front.next_req_id t.ring in
-     let slot = Ring.Front.slot t.ring slot_id in
+     let slot_id = Ring.Rpc.Front.next_req_id t.ring in
+     let slot = Ring.Rpc.Front.slot t.ring slot_id in
      let th,u = Lwt.task () in
      let id = reqfn slot in
-     if Ring.Front.push_requests_and_check_notify t.ring
+     if Ring.Rpc.Front.push_requests_and_check_notify t.ring
      then printf "TX: need to signal event channel\n%!";
      Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
      Hashtbl.add t.wakers id u;
@@ -91,19 +91,19 @@ end
 
 module Server = struct
   type ('a, 'b) t = {
-    ring: ('a, 'b) Ring.Back.t;
+    ring: ('a, 'b) Ring.Rpc.Back.t;
   }
 
   let init ring =
     { ring }
 
   let push_response t rspfn =
-	  let slot_id = Ring.Back.next_res_id t.ring in
-	  let slot = Ring.Back.slot t.ring slot_id in
+	  let slot_id = Ring.Rpc.Back.next_res_id t.ring in
+	  let slot = Ring.Rpc.Back.slot t.ring slot_id in
 	  rspfn slot;
-	  if Ring.Back.push_responses_and_check_notify t.ring
+	  if Ring.Rpc.Back.push_responses_and_check_notify t.ring
 	  then printf "TX: need to signal event channel\n%!"
 
   let poll t fn =
-    Ring.Back.ack_requests t.ring fn
+    Ring.Rpc.Back.ack_requests t.ring fn
 end

@@ -28,7 +28,7 @@ module Client : sig
     * @param ring Shared ring frontend to attach to
     * @return stateful ring client
     *)
-  val init : ('a, 'b) Ring.Front.t -> ('a,'b) t
+  val init : ('a, 'b) Ring.Rpc.Front.t -> ('a,'b) t
 
   (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
   val push_request_async : ('a,'b) t -> (buf -> 'b) -> (unit -> unit) -> unit Lwt.t 
@@ -60,7 +60,7 @@ module Server : sig
     * @param ring Shared ring frontend to attach to
     * @return stateful ring server
     *)
-  val init : ('a, 'b) Ring.Back.t -> ('a,'b) t
+  val init : ('a, 'b) Ring.Rpc.Back.t -> ('a,'b) t
 
   (** [push_response t fn] finds a free slot and applies it to [fn],
       signalling the client that a response is ready. *)

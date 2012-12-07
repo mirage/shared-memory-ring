@@ -19,6 +19,8 @@
 
 type buf = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
+module Rpc : sig
+
 (** Abstract type for a shared ring *)
 type sring
 
@@ -127,6 +129,8 @@ module Back : sig
 
   (** pretty-print ring metadata *)
   val to_string : ('a, 'b) t -> string
+end
+
 end
 
 module Console : sig
