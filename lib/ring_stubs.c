@@ -61,7 +61,7 @@ caml_##xname##_ring_write(value v_ptr, value v_str, value v_len) \
      intf->xout[MASK_XENCONS_IDX(prod++, intf->xout)] = data[sent++]; \
    wmb(); \
    intf->xout##_prod = prod; \
-   return Val_int(len); \
+   return Val_int(len); /* XXX if the buffer is full this will drop data!!! */ \
 } \
 CAMLprim value \
 caml_##xname##_ring_read(value v_ptr, value v_str, value v_len) \
@@ -163,5 +163,12 @@ CAMLprim value
 caml_memory_barrier()
 {
   xen_mb();
+  return Val_unit;
+}
+
+CAMLprim value
+caml_write_memory_barrier()
+{
+  wmb();
   return Val_unit;
 }

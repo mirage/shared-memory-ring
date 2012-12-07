@@ -23,6 +23,9 @@ let sub t off len = Bigarray.Array1.sub t off len
 
 let length t = Bigarray.Array1.dim t
 
+external memory_barrier: unit -> unit = "caml_memory_barrier" "noalloc"
+external write_memory_barrier: unit -> unit = "caml_write_memory_barrier" "noalloc"
+
 module Rpc = struct
 
 let rec pow2 = function
@@ -80,8 +83,6 @@ external sring_push_requests: sring -> int -> unit = "caml_sring_push_requests" 
 external sring_push_responses: sring -> int -> unit = "caml_sring_push_responses" "noalloc"
 external sring_set_rsp_event: sring -> int -> unit = "caml_sring_set_rsp_event" "noalloc"
 external sring_set_req_event: sring -> int -> unit = "caml_sring_set_req_event" "noalloc"
-
-external memory_barrier: unit -> unit = "caml_memory_barrier" "noalloc"
 
 let nr_ents sring = sring.nr_ents
 
@@ -229,6 +230,40 @@ module Back = struct
 end
 end
 
+module X = struct
+	module Front = struct
+		cstruct ring {
+			uint8_t output[1024];
+			uint8_t input[1024];
+			uint32_t output_cons;
+			uint32_t output_prod;
+			uint32_t input_cons;
+			uint32_t input_prod
+		} as little_endian
+	end
+	module Back = struct
+		cstruct ring {
+			uint8_t input[1024];
+			uint8_t output[1024];
+			uint32_t input_cons;
+			uint32_t input_prod;
+			uint32_t output_cons;
+			uint32_t output_prod
+		} as little_endian
+	end
+end
+
+module C = struct
+  cstruct ring {
+    uint8_t input[1024];
+    uint8_t output[2048];
+    uint32_t input_cons;
+    uint32_t input_prod;
+    uint32_t output_cons;
+    uint32_t output_prod
+  } as little_endian
+end
+
 module ByteStream = struct
   type t = {
 	  buf: buf;
@@ -238,10 +273,22 @@ module ByteStream = struct
   let of_buf ~buf ~name = { buf; name }
 
   module Front = struct
-	  let unsafe_write t buf ofs =
+	  let unsafe_write t buf len =
+		  (* XXX: this is probably a "Back.unsafe_write" rather than "Front.unsafe_write" *)
+		  let output = X.Front.get_ring_output t.buf in
+		  let cons = Int32.to_int (X.Front.get_ring_output_cons t.buf) in
+		  let prod = ref (Int32.to_int (X.Front.get_ring_output_prod t.buf)) in
+		  memory_barrier ();
+		  let sent = ref 0 in
+		  while !sent < len && (!prod - cons < (length output)) do
+			  Bigarray.Array1.unsafe_set output (!prod mod (length output)) buf.[!sent];
+			  incr prod;
+			  incr sent;
+		  done;
+		  write_memory_barrier ();
+		  X.Front.set_ring_output_prod t.buf (Int32.of_int !prod);
+		  !sent
 
-
- assert false
 	  let unsafe_read t buf ofs = assert false
   end
   module Back = struct
