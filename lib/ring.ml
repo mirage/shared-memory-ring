@@ -81,6 +81,8 @@ external sring_push_responses: sring -> int -> unit = "caml_sring_push_responses
 external sring_set_rsp_event: sring -> int -> unit = "caml_sring_set_rsp_event" "noalloc"
 external sring_set_req_event: sring -> int -> unit = "caml_sring_set_req_event" "noalloc"
 
+external memory_barrier: unit -> unit = "caml_memory_barrier" "noalloc"
+
 let nr_ents sring = sring.nr_ents
 
 let slot sring idx =
@@ -236,7 +238,10 @@ module ByteStream = struct
   let of_buf ~buf ~name = { buf; name }
 
   module Front = struct
-	  let unsafe_write t buf ofs = assert false
+	  let unsafe_write t buf ofs =
+
+
+ assert false
 	  let unsafe_read t buf ofs = assert false
   end
   module Back = struct

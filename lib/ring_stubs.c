@@ -159,3 +159,9 @@ caml_sring_set_req_event(value v_sring, value v_req_cons)
   return Val_unit;
 }
 
+CAMLprim value
+caml_memory_barrier()
+{
+  xen_mb();
+  return Val_unit;
+}
