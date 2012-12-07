@@ -274,7 +274,6 @@ module ByteStream = struct
 
   module Front = struct
 	  let unsafe_write t buf len =
-		  (* XXX: this is probably a "Back.unsafe_write" rather than "Front.unsafe_write" *)
 		  let output = X.Front.get_ring_output t.buf in
 		  let cons = Int32.to_int (X.Front.get_ring_output_cons t.buf) in
 		  let prod = ref (Int32.to_int (X.Front.get_ring_output_prod t.buf)) in
@@ -289,7 +288,20 @@ module ByteStream = struct
 		  X.Front.set_ring_output_prod t.buf (Int32.of_int !prod);
 		  !sent
 
-	  let unsafe_read t buf ofs = assert false
+	  let unsafe_read t buf len =
+		  let input = X.Front.get_ring_input t.buf in
+		  let cons = ref (Int32.to_int (X.Front.get_ring_input_cons t.buf)) in
+		  let prod = Int32.to_int (X.Front.get_ring_input_prod t.buf) in
+		  let pos = ref 0 in
+		  memory_barrier ();
+		  while (!pos < len && !cons < prod) do
+			  buf.[!pos] <- Bigarray.Array1.unsafe_get input (!cons mod (length input));
+			  incr pos;
+			  incr cons;
+		  done;
+		  memory_barrier (); (* XXX: not a write_memory_barrier? *)
+		  X.Front.set_ring_input_cons t.buf (Int32.of_int !cons);
+		  !pos
   end
   module Back = struct
 	  let unsafe_write t buf ofs = assert false
