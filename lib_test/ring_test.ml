@@ -49,11 +49,11 @@ let xenstore_hello () =
 	let buf = String.make 16 '\000' in
 	with_xenstores
 		(fun b1 b2 a b ->
-			let x = Ring.Xenstore.Front.unsafe_write a msg (String.length msg) in
+			let x = Ring.Xenstore.Front.unsafe_write a msg 0 (String.length msg) in
 			let y = Ring.C_Xenstore.unsafe_write b msg (String.length msg) in
 			assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
-			let x = Ring.Xenstore.Back.unsafe_read a buf (String.length buf) in
+			let x = Ring.Xenstore.Back.unsafe_read a buf 0 (String.length buf) in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			assert_equal (String.sub buf 0 x) msg;
 			let x = Ring.C_Xenstore.Back.unsafe_read b buf (String.length buf) in
@@ -80,11 +80,11 @@ let console_hello () =
 	let buf = String.make 16 '\000' in
 	with_consoles
 		(fun b1 b2 a b ->
-			let x = Ring.Console.Front.unsafe_write a msg (String.length msg) in
+			let x = Ring.Console.Front.unsafe_write a msg 0 (String.length msg) in
 			let y = Ring.C_Console.unsafe_write b msg (String.length msg) in
 			assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
-			let x = Ring.Console.Back.unsafe_read a buf (String.length buf) in
+			let x = Ring.Console.Back.unsafe_read a buf 0 (String.length buf) in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			assert_equal (String.sub buf 0 x) msg;
 			let x = Ring.C_Console.Back.unsafe_read b buf (String.length buf) in
@@ -121,15 +121,14 @@ let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size () =
 			while !producer < length do
 				let remaining = length - !producer in
 				let can_write = min write_chunk_size remaining in
-				let chunk = String.sub block !producer can_write in
 				let written =
 					if use_ocaml
-					then Ring.Console.Front.unsafe_write a chunk can_write
-					else Ring.C_Console.unsafe_write b chunk can_write in
+					then Ring.Console.Front.unsafe_write a block !producer can_write
+					else Ring.C_Console.unsafe_write b (String.sub block !producer can_write) can_write in
 				producer := !producer + written;
 				let read =
 					if use_ocaml
-						then Ring.Console.Back.unsafe_read a read_chunk read_chunk_size
+						then Ring.Console.Back.unsafe_read a read_chunk 0 read_chunk_size
 					else Ring.C_Console.Back.unsafe_read b read_chunk read_chunk_size in
 				consumed := !consumed + read;
 				assert ((written <> 0) || (read <> 0))
