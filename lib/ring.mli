@@ -133,6 +133,29 @@ end
 
 end
 
+module ByteStream : sig
+  type t
+
+  (** Given a buf [buf] comprising pre-allocated contiguous
+      I/O pages, return an [t] which can be used for bi-directional
+      bytestream communication.
+      @param buf pre-allocated contiguous I/O pages
+      @param name string name, for pretty-printing
+      @return shared ring
+  *)
+  val of_buf : buf:buf -> name:string -> t
+
+  module Front : sig
+    val unsafe_write: t -> string -> int -> int
+	val unsafe_read: t -> string -> int -> int
+  end
+  module Back : sig
+	val unsafe_write : t -> string -> int -> int
+	val unsafe_read : t -> string -> int -> int
+  end
+end
+
+
 module Console : sig
   type t
   external unsafe_write : t -> string -> int -> int = "caml_console_ring_write"

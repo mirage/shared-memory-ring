@@ -227,6 +227,24 @@ module Back = struct
 end
 end
 
+module ByteStream = struct
+  type t = {
+	  buf: buf;
+	  name: string;
+  }
+
+  let of_buf ~buf ~name = { buf; name }
+
+  module Front = struct
+	  let unsafe_write t buf ofs = assert false
+	  let unsafe_read t buf ofs = assert false
+  end
+  module Back = struct
+	  let unsafe_write t buf ofs = assert false
+	  let unsafe_read t buf ofs = assert false
+  end
+end
+
 (* Raw ring handling section *)
 (* TODO both of these can be combined into one set of bindings now *)
 module Console = struct
