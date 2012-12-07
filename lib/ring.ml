@@ -75,14 +75,30 @@ let of_buf ~buf ~idx_size ~name =
   let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
   { name; buf; idx_size; nr_ents; header_size }
 
-external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod" "noalloc"
-external sring_req_prod: sring -> int = "caml_sring_req_prod" "noalloc"
-external sring_req_event: sring -> int = "caml_sring_req_event" "noalloc"
-external sring_rsp_event: sring -> int = "caml_sring_rsp_event" "noalloc"
-external sring_push_requests: sring -> int -> unit = "caml_sring_push_requests" "noalloc"
-external sring_push_responses: sring -> int -> unit = "caml_sring_push_responses" "noalloc"
-external sring_set_rsp_event: sring -> int -> unit = "caml_sring_set_rsp_event" "noalloc"
-external sring_set_req_event: sring -> int -> unit = "caml_sring_set_req_event" "noalloc"
+let sring_rsp_prod sring = Int32.to_int (get_ring_hdr_rsp_prod sring.buf)
+let sring_req_prod sring = Int32.to_int (get_ring_hdr_req_prod sring.buf)
+let sring_req_event sring =
+	memory_barrier ();
+	Int32.to_int (get_ring_hdr_req_event sring.buf)
+let sring_rsp_event sring =
+	memory_barrier ();
+	Int32.to_int (get_ring_hdr_rsp_event sring.buf)
+
+let sring_push_requests sring req_prod =
+	write_memory_barrier (); (* ensure requests are seen before the index is updated *)
+	set_ring_hdr_req_prod sring.buf (Int32.of_int req_prod)
+
+let sring_push_responses sring rsp_prod =
+	write_memory_barrier (); (* ensure requests are seen before the index is updated *)
+	set_ring_hdr_rsp_prod sring.buf (Int32.of_int rsp_prod)
+
+let sring_set_rsp_event sring rsp_cons =
+	set_ring_hdr_rsp_event sring.buf (Int32.of_int rsp_cons);
+	memory_barrier ()
+
+let sring_set_req_event sring req_cons =
+	set_ring_hdr_req_event sring.buf (Int32.of_int req_cons);
+	memory_barrier ()
 
 let nr_ents sring = sring.nr_ents
 
