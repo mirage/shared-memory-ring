@@ -93,6 +93,55 @@ let console_hello () =
 			()
 		)
 
+let block =
+	let buf = Bigarray.Array1.create Bigarray.char Bigarray.c_layout (15 * 1024 * 1024) in
+	let counter = ref 0l in
+	for i = 0 to Bigarray.Array1.dim buf / 4 - 1 do
+		Cstruct.LE.set_uint32 buf (i * 4) !counter;
+		counter := Int32.add 1l !counter;
+	done;
+	buf
+
+let bigarray_to_string a =
+	let s = String.make (Bigarray.Array1.dim a) '\000' in
+	for i = 0 to Bigarray.Array1.dim a - 1 do
+		s.[0] <- Bigarray.Array1.unsafe_get a i
+	done;
+	s
+
+let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size () =
+	with_consoles
+		(fun b1 b2 a b ->
+			let read_chunk = String.make read_chunk_size '\000' in
+			let block = bigarray_to_string block in
+			let producer = ref 0 in
+			let consumed = ref 0 in
+			let length = String.length block in
+			let start = Unix.gettimeofday () in
+			while !producer < length do
+				let remaining = length - !producer in
+				let can_write = min write_chunk_size remaining in
+				let chunk = String.sub block !producer can_write in
+				let written =
+					if use_ocaml
+					then Ring.Console.Front.unsafe_write a chunk can_write
+					else Ring.C_Console.unsafe_write b chunk can_write in
+				producer := !producer + written;
+				let read =
+					if use_ocaml
+						then Ring.Console.Back.unsafe_read a read_chunk read_chunk_size
+					else Ring.C_Console.Back.unsafe_read b read_chunk read_chunk_size in
+				consumed := !consumed + read;
+				assert ((written <> 0) || (read <> 0))
+			done;
+			let duration = Unix.gettimeofday () -. start in
+			assert_equal ~msg:"transferred" ~printer:string_of_int length !consumed;
+			Printf.fprintf stderr "%s read(%d) write(%d): %.2f MiB/sec\n"
+				(if use_ocaml then "OCaml" else "C")
+				read_chunk_size write_chunk_size
+				(float_of_int !consumed /. duration /. (1024. *. 1024.))
+		)
+
 let _ =
   let verbose = ref false in
   Arg.parse [
@@ -106,5 +155,7 @@ let _ =
 		"xenstore_hello" >:: xenstore_hello;
 		"console_init" >:: console_init;
 		"console_hello" >:: console_hello;
+		"ocaml throughput_test" >:: throughput_test ~use_ocaml:true ~read_chunk_size:1024 ~write_chunk_size:1024;
+		"C throughput_test" >:: throughput_test ~use_ocaml:false ~read_chunk_size:1024 ~write_chunk_size:1024;
     ] in
   run_test_tt ~verbose:!verbose suite
