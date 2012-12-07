@@ -75,6 +75,24 @@ let console_init () =
 			compare_bufs b1 b2
 		)
 
+let console_hello () =
+	let msg = "hello" in
+	let buf = String.make 16 '\000' in
+	with_consoles
+		(fun b1 b2 a b ->
+			let x = Ring.Console.Front.unsafe_write a msg (String.length msg) in
+			let y = Ring.C_Console.unsafe_write b msg (String.length msg) in
+			assert_equal ~printer:string_of_int x y;
+			compare_bufs b1 b2;
+			let x = Ring.Console.Back.unsafe_read a buf (String.length buf) in
+			assert_equal ~printer:string_of_int x (String.length msg);
+			assert_equal (String.sub buf 0 x) msg;
+			let x = Ring.C_Console.Back.unsafe_read b buf (String.length buf) in
+			assert_equal ~printer:string_of_int x (String.length msg);
+			assert_equal (String.sub buf 0 x) msg;
+			()
+		)
+
 let _ =
   let verbose = ref false in
   Arg.parse [
@@ -87,5 +105,6 @@ let _ =
 		"xenstore_init" >:: xenstore_init;
 		"xenstore_hello" >:: xenstore_hello;
 		"console_init" >:: console_init;
+		"console_hello" >:: console_hello;
     ] in
   run_test_tt ~verbose:!verbose suite
