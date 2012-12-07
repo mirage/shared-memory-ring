@@ -182,5 +182,7 @@ let _ =
 		"C throughput_test" >:: throughput_test ~use_ocaml:false ~read_chunk_size:1024 ~write_chunk_size:1024 ~verify:false;
 		"ocaml correctness_test" >:: throughput_test ~use_ocaml:true ~read_chunk_size:1024 ~write_chunk_size:1024 ~verify:true;
 		"C correctness_test" >:: throughput_test ~use_ocaml:false ~read_chunk_size:1024 ~write_chunk_size:1024 ~verify:true;
+		"ocaml correctness_test" >:: throughput_test ~use_ocaml:true ~read_chunk_size:1023 ~write_chunk_size:1024 ~verify:true;
+		"C correctness_test" >:: throughput_test ~use_ocaml:false ~read_chunk_size:1023 ~write_chunk_size:1024 ~verify:true;
     ] in
   run_test_tt ~verbose:!verbose suite
