@@ -230,29 +230,6 @@ module Back = struct
 end
 end
 
-module X = struct
-	module Front = struct
-		cstruct ring {
-			uint8_t output[1024];
-			uint8_t input[1024];
-			uint32_t output_cons;
-			uint32_t output_prod;
-			uint32_t input_cons;
-			uint32_t input_prod
-		} as little_endian
-	end
-	module Back = struct
-		cstruct ring {
-			uint8_t input[1024];
-			uint8_t output[1024];
-			uint32_t input_cons;
-			uint32_t input_prod;
-			uint32_t output_cons;
-			uint32_t output_prod
-		} as little_endian
-	end
-end
-
 module C = struct
   cstruct ring {
     uint8_t input[1024];
@@ -264,6 +241,87 @@ module C = struct
   } as little_endian
 end
 
+module type RW = sig
+	val get_ring_input: buf -> buf
+	val get_ring_input_cons: buf -> int32
+	val get_ring_input_prod: buf -> int32
+	val set_ring_input_cons: buf -> int32 -> unit
+
+	val get_ring_output: buf -> buf
+	val get_ring_output_cons: buf -> int32
+	val get_ring_output_prod: buf -> int32
+	val set_ring_output_prod: buf -> int32 -> unit
+end
+
+
+module X = struct
+	cstruct ring {
+		uint8_t req[1024];
+		uint8_t rsp[1024];
+		uint32_t req_cons;
+		uint32_t req_prod;
+		uint32_t rsp_cons;
+		uint32_t rsp_prod
+	} as little_endian
+
+	module Front = struct
+		(* From the frontend's point of view, responses are the input *)
+		let get_ring_input = get_ring_rsp
+		let get_ring_input_cons = get_ring_rsp_cons
+		let get_ring_input_prod = get_ring_rsp_prod
+		let set_ring_input_cons = set_ring_rsp_cons
+		(* and requests are the output *)
+		let get_ring_output = get_ring_req
+		let get_ring_output_cons = get_ring_req_cons
+		let get_ring_output_prod = get_ring_req_prod
+		let set_ring_output_prod = set_ring_req_prod
+	end
+	module Back = struct
+		(* From the backend's point of view, requests are the input *)
+		let get_ring_input = get_ring_req
+		let get_ring_input_cons = get_ring_req_cons
+		let get_ring_input_prod = get_ring_req_prod
+		let set_ring_input_cons = set_ring_req_cons
+		(* and responses are the output *)
+		let get_ring_output = get_ring_rsp
+		let get_ring_output_cons = get_ring_rsp_cons
+		let get_ring_output_prod = get_ring_rsp_prod
+		let set_ring_output_prod = set_ring_rsp_prod
+	end
+end
+
+module Pipe(RW: RW) = struct
+	let unsafe_write t buf len =
+		let output = RW.get_ring_output t in
+		let cons = Int32.to_int (RW.get_ring_output_cons t) in
+		let prod = ref (Int32.to_int (RW.get_ring_output_prod t)) in
+		memory_barrier ();
+		let sent = ref 0 in
+		while !sent < len && (!prod - cons < (length output)) do
+			Bigarray.Array1.unsafe_set output (!prod mod (length output)) buf.[!sent];
+			incr prod;
+			incr sent;
+		done;
+		write_memory_barrier ();
+		RW.set_ring_output_prod t (Int32.of_int !prod);
+		!sent
+
+	let unsafe_read t buf len =
+		let input = RW.get_ring_input t in
+		let cons = ref (Int32.to_int (RW.get_ring_input_cons t)) in
+		let prod = Int32.to_int (RW.get_ring_input_prod t) in
+		let pos = ref 0 in
+		memory_barrier ();
+		while (!pos < len && !cons < prod) do
+			buf.[!pos] <- Bigarray.Array1.unsafe_get input (!cons mod (length input));
+			incr pos;
+			incr cons;
+		done;
+		memory_barrier (); (* XXX: not a write_memory_barrier? *)
+		RW.set_ring_input_cons t (Int32.of_int !cons);
+		!pos
+end
+
 module ByteStream = struct
   type t = {
 	  buf: buf;
@@ -273,39 +331,14 @@ module ByteStream = struct
   let of_buf ~buf ~name = { buf; name }
 
   module Front = struct
-	  let unsafe_write t buf len =
-		  let output = X.Front.get_ring_output t.buf in
-		  let cons = Int32.to_int (X.Front.get_ring_output_cons t.buf) in
-		  let prod = ref (Int32.to_int (X.Front.get_ring_output_prod t.buf)) in
-		  memory_barrier ();
-		  let sent = ref 0 in
-		  while !sent < len && (!prod - cons < (length output)) do
-			  Bigarray.Array1.unsafe_set output (!prod mod (length output)) buf.[!sent];
-			  incr prod;
-			  incr sent;
-		  done;
-		  write_memory_barrier ();
-		  X.Front.set_ring_output_prod t.buf (Int32.of_int !prod);
-		  !sent
-
-	  let unsafe_read t buf len =
-		  let input = X.Front.get_ring_input t.buf in
-		  let cons = ref (Int32.to_int (X.Front.get_ring_input_cons t.buf)) in
-		  let prod = Int32.to_int (X.Front.get_ring_input_prod t.buf) in
-		  let pos = ref 0 in
-		  memory_barrier ();
-		  while (!pos < len && !cons < prod) do
-			  buf.[!pos] <- Bigarray.Array1.unsafe_get input (!cons mod (length input));
-			  incr pos;
-			  incr cons;
-		  done;
-		  memory_barrier (); (* XXX: not a write_memory_barrier? *)
-		  X.Front.set_ring_input_cons t.buf (Int32.of_int !cons);
-		  !pos
+	  include Pipe(X.Front)
+	  let unsafe_write t = unsafe_write t.buf
+	  let unsafe_read t = unsafe_read t.buf
   end
   module Back = struct
-	  let unsafe_write t buf ofs = assert false
-	  let unsafe_read t buf ofs = assert false
+	  include Pipe(X.Back)
+	  let unsafe_write t = unsafe_write t.buf
+	  let unsafe_read t = unsafe_read t.buf
   end
 end
 
