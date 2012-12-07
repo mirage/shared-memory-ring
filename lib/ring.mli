@@ -154,7 +154,10 @@ module C_Console : sig
   type t
   external unsafe_write : t -> string -> int -> int = "caml_console_ring_write"
   external unsafe_read : t -> string -> int -> int = "caml_console_ring_read"
-
+  module Back : sig
+	  val unsafe_write : t -> string -> int -> int
+	  val unsafe_read : t -> string -> int -> int
+  end
   val of_buf : buf -> t
 end
 
