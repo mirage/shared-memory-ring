@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 5a727a2d18d6c91b5a8f371a91f71b66)
+# DO NOT EDIT (digest: c284104c791b43b6d3e5b0420e858b0b)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -18,8 +18,8 @@
 <lib/shared_memory_ring.{cma,cmxa}>: use_libshared_memory_ring_stubs
 <lib/*.ml{,i}>: pkg_cstruct
 <lib/*.ml{,i}>: pkg_cstruct.syntax
-"lib/ring_stubs.c": pkg_cstruct
-"lib/ring_stubs.c": pkg_cstruct.syntax
+"lib/barrier_stubs.c": pkg_cstruct
+"lib/barrier_stubs.c": pkg_cstruct.syntax
 # Library console_ring
 "xen/console_ring.cmxs": use_console_ring
 # Library xenstore_ring
