@@ -230,64 +230,62 @@ module Back = struct
 end
 end
 
-module C = struct
-  cstruct ring {
-    uint8_t input[1024];
-    uint8_t output[2048];
-    uint32_t input_cons;
-    uint32_t input_prod;
-    uint32_t output_cons;
-    uint32_t output_prod
-  } as little_endian
-end
-
 module type RW = sig
+	(** A bi-directional pipe where 'input' and 'output' are from
+	    the frontend's (i.e. the guest's) point of view *)
 	val get_ring_input: buf -> buf
 	val get_ring_input_cons: buf -> int32
 	val get_ring_input_prod: buf -> int32
 	val set_ring_input_cons: buf -> int32 -> unit
+	val set_ring_input_prod: buf -> int32 -> unit
 
 	val get_ring_output: buf -> buf
 	val get_ring_output_cons: buf -> int32
 	val get_ring_output_prod: buf -> int32
+	val set_ring_output_cons: buf -> int32 -> unit
 	val set_ring_output_prod: buf -> int32 -> unit
 end
 
+module Reverse(RW: RW) = struct
+	let get_ring_input = RW.get_ring_output
+	let get_ring_input_cons = RW.get_ring_output_cons
+	let get_ring_input_prod = RW.get_ring_output_prod
+	let set_ring_input_cons = RW.set_ring_output_cons
+	let set_ring_input_prod = RW.set_ring_output_prod
+
+	let get_ring_output = RW.get_ring_input
+	let get_ring_output_cons = RW.get_ring_input_cons
+	let get_ring_output_prod = RW.get_ring_input_prod
+	let set_ring_output_cons = RW.set_ring_input_cons
+	let set_ring_output_prod = RW.set_ring_input_prod
+end
 
 module X = struct
-	cstruct ring {
-		uint8_t req[1024];
-		uint8_t rsp[1024];
-		uint32_t req_cons;
-		uint32_t req_prod;
-		uint32_t rsp_cons;
-		uint32_t rsp_prod
-	} as little_endian
-
 	module Front = struct
-		(* From the frontend's point of view, responses are the input *)
-		let get_ring_input = get_ring_rsp
-		let get_ring_input_cons = get_ring_rsp_cons
-		let get_ring_input_prod = get_ring_rsp_prod
-		let set_ring_input_cons = set_ring_rsp_cons
-		(* and requests are the output *)
-		let get_ring_output = get_ring_req
-		let get_ring_output_cons = get_ring_req_cons
-		let get_ring_output_prod = get_ring_req_prod
-		let set_ring_output_prod = set_ring_req_prod
+		cstruct ring {
+			uint8_t output[1024];
+			uint8_t input[1024];
+			uint32_t output_cons;
+			uint32_t output_prod;
+			uint32_t input_cons;
+			uint32_t input_prod
+		} as little_endian
 	end
-	module Back = struct
-		(* From the backend's point of view, requests are the input *)
-		let get_ring_input = get_ring_req
-		let get_ring_input_cons = get_ring_req_cons
-		let get_ring_input_prod = get_ring_req_prod
-		let set_ring_input_cons = set_ring_req_cons
-		(* and responses are the output *)
-		let get_ring_output = get_ring_rsp
-		let get_ring_output_cons = get_ring_rsp_cons
-		let get_ring_output_prod = get_ring_rsp_prod
-		let set_ring_output_prod = set_ring_rsp_prod
+	module Back = Reverse(Front)
+end
+
+module C = struct
+	module Front = struct
+		cstruct ring {
+			uint8_t input[1024];
+			uint8_t output[2048];
+			uint32_t input_cons;
+			uint32_t input_prod;
+			uint32_t output_cons;
+			uint32_t output_prod
+		} as little_endian
 	end
+	module Back = Reverse(Front)
 end
 
 module Pipe(RW: RW) = struct
