@@ -19,6 +19,31 @@ open OUnit
 let ( |> ) a b = b a
 let id x = x
 
+let alloc_page () =
+	Bigarray.Array1.create Bigarray.char Bigarray.c_layout 4096
+let length t = Bigarray.Array1.dim t
+
+let compare_bufs a b =
+	assert_equal ~printer:string_of_int (length a) (length b);
+	for i = 0 to length a - 1 do
+		let x = Bigarray.Array1.unsafe_get a i in
+		let y = Bigarray.Array1.unsafe_get b i in
+		assert_equal ~printer:(fun c -> Printf.sprintf "%02x" (int_of_char c)) x y
+	done
+
+let with_xenstores f =
+	let b1 = alloc_page () in
+	let b2 = alloc_page () in
+	let a = Ring.ByteStream.of_buf ~buf:b1 ~name:"ocaml" in
+	let b = Ring.Xenstore.of_buf b2 in
+	f b1 b2 a b
+
+let xenstore_init () =
+	with_xenstores
+		(fun b1 b2 _ _ ->
+			compare_bufs b1 b2
+		)
+
 let _ =
   let verbose = ref false in
   Arg.parse [
@@ -28,5 +53,6 @@ let _ =
 
   let suite = "ring" >:::
     [
+		"xenstore_init" >:: xenstore_init;
     ] in
   run_test_tt ~verbose:!verbose suite
