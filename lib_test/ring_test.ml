@@ -34,8 +34,8 @@ let compare_bufs a b =
 let with_xenstores f =
 	let b1 = alloc_page () in
 	let b2 = alloc_page () in
-	let a = Ring.ByteStream.of_buf ~buf:b1 ~name:"ocaml" in
-	let b = Ring.Xenstore.of_buf b2 in
+	let a = Ring.Xenstore.of_buf b1 in
+	let b = Ring.C_Xenstore.of_buf b2 in
 	f b1 b2 a b
 
 let xenstore_init () =
@@ -48,8 +48,8 @@ let xenstore_hello () =
 	let msg = "hello" in
 	with_xenstores
 		(fun b1 b2 a b ->
-			let x = Ring.ByteStream.Front.unsafe_write a msg (String.length msg) in
-			let y = Ring.Xenstore.unsafe_write b msg (String.length msg) in
+			let x = Ring.Xenstore.Front.unsafe_write a msg (String.length msg) in
+			let y = Ring.C_Xenstore.unsafe_write b msg (String.length msg) in
 			assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
 		)

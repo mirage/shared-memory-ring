@@ -260,34 +260,6 @@ module Reverse(RW: RW) = struct
 	let set_ring_output_prod = RW.set_ring_input_prod
 end
 
-module X = struct
-	module Front = struct
-		cstruct ring {
-			uint8_t output[1024];
-			uint8_t input[1024];
-			uint32_t output_cons;
-			uint32_t output_prod;
-			uint32_t input_cons;
-			uint32_t input_prod
-		} as little_endian
-	end
-	module Back = Reverse(Front)
-end
-
-module C = struct
-	module Front = struct
-		cstruct ring {
-			uint8_t input[1024];
-			uint8_t output[2048];
-			uint32_t input_cons;
-			uint32_t input_prod;
-			uint32_t output_cons;
-			uint32_t output_prod
-		} as little_endian
-	end
-	module Back = Reverse(Front)
-end
-
 module Pipe(RW: RW) = struct
 	let unsafe_write t buf len =
 		let output = RW.get_ring_output t in
@@ -320,36 +292,66 @@ module Pipe(RW: RW) = struct
 		!pos
 end
 
-module ByteStream = struct
-  type t = {
-	  buf: buf;
-	  name: string;
-  }
+module type Bidirectional_byte_stream = sig
+	type t
+	val of_buf: buf -> t
 
-  let of_buf ~buf ~name = { buf; name }
+	module Front : sig
+		val unsafe_write: t -> string -> int -> int
+		val unsafe_read: t -> string -> int -> int
+	end
+	module Back : sig
+		val unsafe_write: t -> string -> int -> int
+		val unsafe_read: t -> string -> int -> int		
+	end
+end
 
-  module Front = struct
-	  include Pipe(X.Front)
-	  let unsafe_write t = unsafe_write t.buf
-	  let unsafe_read t = unsafe_read t.buf
-  end
-  module Back = struct
-	  include Pipe(X.Back)
-	  let unsafe_write t = unsafe_write t.buf
-	  let unsafe_read t = unsafe_read t.buf
-  end
+module Xenstore = struct
+	type t = buf
+	let of_buf t = t
+	module Layout = struct
+		(* memory layout from the frontend's point of view *)
+		cstruct ring {
+			uint8_t output[1024];
+			uint8_t input[1024];
+			uint32_t output_cons;
+			uint32_t output_prod;
+			uint32_t input_cons;
+			uint32_t input_prod
+		} as little_endian
+	end
+	module Front = Pipe(Layout)
+	module Back = Pipe(Reverse(Layout))
+end
+
+module Console = struct
+	type t = buf
+	let of_buf t = t
+	module Layout = struct
+		(* memory layout from the frontend's point of view *)
+		cstruct ring {
+			uint8_t input[1024];
+			uint8_t output[2048];
+			uint32_t input_cons;
+			uint32_t input_prod;
+			uint32_t output_cons;
+			uint32_t output_prod
+		} as little_endian
+	end
+	module Front = Pipe(Layout)
+	module Back = Pipe(Reverse(Layout))
 end
 
 (* Raw ring handling section *)
 (* TODO both of these can be combined into one set of bindings now *)
-module Console = struct
+module C_Console = struct
     type t
     external zero: t -> unit = "caml_console_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_console_ring_write"
     external unsafe_read: t -> string -> int -> int = "caml_console_ring_read"
 end
 
-module Xenstore = struct
+module C_Xenstore = struct
     type t = buf
     let of_buf t = t
     external zero: t -> unit = "caml_xenstore_ring_init"
