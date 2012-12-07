@@ -62,6 +62,19 @@ let xenstore_hello () =
 			()
 		)
 
+let with_consoles f =
+	let b1 = alloc_page () in
+	let b2 = alloc_page () in
+	let a = Ring.Console.of_buf b1 in
+	let b = Ring.C_Console.of_buf b2 in
+	f b1 b2 a b
+
+let console_init () =
+	with_consoles
+		(fun b1 b2 _ _ ->
+			compare_bufs b1 b2
+		)
+
 let _ =
   let verbose = ref false in
   Arg.parse [
@@ -73,5 +86,6 @@ let _ =
     [
 		"xenstore_init" >:: xenstore_init;
 		"xenstore_hello" >:: xenstore_hello;
+		"console_init" >:: console_init;
     ] in
   run_test_tt ~verbose:!verbose suite

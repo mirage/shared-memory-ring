@@ -345,7 +345,8 @@ end
 (* Raw ring handling section *)
 (* TODO both of these can be combined into one set of bindings now *)
 module C_Console = struct
-    type t
+    type t = buf
+    let of_buf t = t
     external zero: t -> unit = "caml_console_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_console_ring_write"
     external unsafe_read: t -> string -> int -> int = "caml_console_ring_read"
