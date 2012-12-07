@@ -313,6 +313,8 @@ module type Bidirectional_byte_stream = sig
 	type t
 	val of_buf: buf -> t
 
+	val to_debug_string: t -> string
+
 	module Front : sig
 		val unsafe_write: t -> buf -> int
 		val unsafe_read: t -> buf -> int
@@ -337,6 +339,11 @@ module Xenstore = struct
 			uint32_t input_prod
 		} as little_endian
 	end
+	let to_debug_string t =
+		Printf.sprintf "input_cons = %ld prod = %ld; output cons = %ld prod = %ld"
+			(Layout.get_ring_input_cons t) (Layout.get_ring_input_prod t)
+			(Layout.get_ring_output_cons t) (Layout.get_ring_output_prod t)
+
 	module Front = Pipe(Layout)
 	module Back = Pipe(Reverse(Layout))
 end
@@ -355,6 +362,10 @@ module Console = struct
 			uint32_t output_prod
 		} as little_endian
 	end
+	let to_debug_string t =
+		Printf.sprintf "input_cons = %ld prod = %ld; output cons = %ld prod = %ld"
+			(Layout.get_ring_input_cons t) (Layout.get_ring_input_prod t)
+			(Layout.get_ring_output_cons t) (Layout.get_ring_output_prod t)
 	module Front = Pipe(Layout)
 	module Back = Pipe(Reverse(Layout))
 end

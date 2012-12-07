@@ -136,7 +136,7 @@ end
 module type Bidirectional_byte_stream = sig
 	type t
 	val of_buf: buf -> t
-
+	val to_debug_string: t -> string
 	module Front : sig
 		val unsafe_write: t -> buf -> int
 		val unsafe_read: t -> buf -> int
