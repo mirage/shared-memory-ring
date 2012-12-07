@@ -56,6 +56,9 @@ let xenstore_hello () =
 			let x = Ring.Xenstore.Back.unsafe_read a buf (String.length buf) in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			assert_equal (String.sub buf 0 x) msg;
+			let x = Ring.C_Xenstore.Back.unsafe_read b buf (String.length buf) in
+			assert_equal ~printer:string_of_int x (String.length msg);
+			assert_equal (String.sub buf 0 x) msg;
 			()
 		)
 
