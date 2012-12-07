@@ -44,6 +44,16 @@ let xenstore_init () =
 			compare_bufs b1 b2
 		)
 
+let xenstore_hello () =
+	let msg = "hello" in
+	with_xenstores
+		(fun b1 b2 a b ->
+			let x = Ring.ByteStream.Front.unsafe_write a msg (String.length msg) in
+			let y = Ring.Xenstore.unsafe_write b msg (String.length msg) in
+			assert_equal ~printer:string_of_int x y;
+			compare_bufs b1 b2;
+		)
+
 let _ =
   let verbose = ref false in
   Arg.parse [
@@ -54,5 +64,6 @@ let _ =
   let suite = "ring" >:::
     [
 		"xenstore_init" >:: xenstore_init;
+		"xenstore_hello" >:: xenstore_hello;
     ] in
   run_test_tt ~verbose:!verbose suite
