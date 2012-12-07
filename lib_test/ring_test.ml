@@ -112,7 +112,7 @@ let console_hello () =
 		)
 
 let block' =
-	let buf = Bigarray.Array1.create Bigarray.char Bigarray.c_layout (15 * 1024 * 1024) in
+	let buf = Bigarray.Array1.create Bigarray.char Bigarray.c_layout (1 * 1024 * 1024) in
 	let counter = ref 0l in
 	for i = 0 to Bigarray.Array1.dim buf / 4 - 1 do
 		Cstruct.LE.set_uint32 buf (i * 4) !counter;
@@ -120,12 +120,13 @@ let block' =
 	done;
 	buf
 
-let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size () =
+let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size ~verify () =
 	with_consoles
 		(fun b1 b2 a b ->
 			let read_chunk = String.make read_chunk_size '\000' in
-			let read_chunk' = string_to_bigarray read_chunk in
 			let block = bigarray_to_string block' in
+			let output' = Bigarray.Array1.create Bigarray.char Bigarray.c_layout (Bigarray.Array1.dim block') in
+			let output = String.make (String.length block) '\000' in
 			let producer = ref 0 in
 			let consumed = ref 0 in
 			let length = String.length block in
@@ -140,14 +141,25 @@ let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size () =
 				producer := !producer + written;
 				let read =
 					if use_ocaml
-					then Ring.Console.Back.unsafe_read a read_chunk'
-					else Ring.C_Console.Back.unsafe_read b read_chunk read_chunk_size in
+					then Ring.Console.Back.unsafe_read a (Bigarray.Array1.sub output' !consumed (length - !consumed))
+					else begin
+						let n = Ring.C_Console.Back.unsafe_read b read_chunk read_chunk_size in
+						String.blit read_chunk 0 output !consumed n;
+						n
+					end in
+				(* verify *)
+				if verify then begin
+					if use_ocaml
+					then compare_bufs (Bigarray.Array1.sub block' !consumed read) (Bigarray.Array1.sub output' !consumed read)
+					else assert_equal (String.sub block !consumed read) (String.sub read_chunk 0 read)
+				end;
 				consumed := !consumed + read;
 				assert ((written <> 0) || (read <> 0))
 			done;
 			let duration = Unix.gettimeofday () -. start in
 			assert_equal ~msg:"transferred" ~printer:string_of_int length !consumed;
-			Printf.fprintf stderr "%s read(%d) write(%d): %.2f MiB/sec\n"
+			if not verify
+			then Printf.fprintf stderr "%s read(%d) write(%d): %.2f MiB/sec\n"
 				(if use_ocaml then "OCaml" else "C")
 				read_chunk_size write_chunk_size
 				(float_of_int !consumed /. duration /. (1024. *. 1024.))
@@ -166,7 +178,9 @@ let _ =
 		"xenstore_hello" >:: xenstore_hello;
 		"console_init" >:: console_init;
 		"console_hello" >:: console_hello;
-		"ocaml throughput_test" >:: throughput_test ~use_ocaml:true ~read_chunk_size:1024 ~write_chunk_size:1024;
-		"C throughput_test" >:: throughput_test ~use_ocaml:false ~read_chunk_size:1024 ~write_chunk_size:1024;
+		"ocaml throughput_test" >:: throughput_test ~use_ocaml:true ~read_chunk_size:1024 ~write_chunk_size:1024 ~verify:false;
+		"C throughput_test" >:: throughput_test ~use_ocaml:false ~read_chunk_size:1024 ~write_chunk_size:1024 ~verify:false;
+		"ocaml correctness_test" >:: throughput_test ~use_ocaml:true ~read_chunk_size:1024 ~write_chunk_size:1024 ~verify:true;
+		"C correctness_test" >:: throughput_test ~use_ocaml:false ~read_chunk_size:1024 ~write_chunk_size:1024 ~verify:true;
     ] in
   run_test_tt ~verbose:!verbose suite
