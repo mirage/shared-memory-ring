@@ -46,12 +46,17 @@ let xenstore_init () =
 
 let xenstore_hello () =
 	let msg = "hello" in
+	let buf = String.make 16 '\000' in
 	with_xenstores
 		(fun b1 b2 a b ->
 			let x = Ring.Xenstore.Front.unsafe_write a msg (String.length msg) in
 			let y = Ring.C_Xenstore.unsafe_write b msg (String.length msg) in
 			assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
+			let x = Ring.Xenstore.Back.unsafe_read a buf (String.length buf) in
+			assert_equal ~printer:string_of_int x (String.length msg);
+			assert_equal (String.sub buf 0 x) msg;
+			()
 		)
 
 let _ =
