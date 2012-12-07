@@ -31,6 +31,20 @@ let compare_bufs a b =
 		assert_equal ~printer:(fun c -> Printf.sprintf "%02x" (int_of_char c)) x y
 	done
 
+let bigarray_to_string a =
+	let s = String.make (Bigarray.Array1.dim a) '\000' in
+	for i = 0 to Bigarray.Array1.dim a - 1 do
+		s.[0] <- Bigarray.Array1.unsafe_get a i
+	done;
+	s
+
+let string_to_bigarray s =
+	let a = Bigarray.Array1.create Bigarray.char Bigarray.c_layout (String.length s) in
+	for i = 0 to String.length s - 1 do
+		Bigarray.Array1.unsafe_set a i s.[i]
+	done;
+	a
+
 let with_xenstores f =
 	let b1 = alloc_page () in
 	let b2 = alloc_page () in
@@ -46,16 +60,18 @@ let xenstore_init () =
 
 let xenstore_hello () =
 	let msg = "hello" in
+	let msg' = string_to_bigarray msg in
 	let buf = String.make 16 '\000' in
+	let buf' = string_to_bigarray buf in
 	with_xenstores
 		(fun b1 b2 a b ->
-			let x = Ring.Xenstore.Front.unsafe_write a msg 0 (String.length msg) in
+			let x = Ring.Xenstore.Front.unsafe_write a msg' in
 			let y = Ring.C_Xenstore.unsafe_write b msg (String.length msg) in
 			assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
-			let x = Ring.Xenstore.Back.unsafe_read a buf 0 (String.length buf) in
+			let x = Ring.Xenstore.Back.unsafe_read a buf' in
 			assert_equal ~printer:string_of_int x (String.length msg);
-			assert_equal (String.sub buf 0 x) msg;
+			compare_bufs (Bigarray.Array1.sub buf' 0 x) msg';
 			let x = Ring.C_Xenstore.Back.unsafe_read b buf (String.length buf) in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			assert_equal (String.sub buf 0 x) msg;
@@ -77,23 +93,25 @@ let console_init () =
 
 let console_hello () =
 	let msg = "hello" in
+	let msg' = string_to_bigarray msg in
 	let buf = String.make 16 '\000' in
+	let buf' = string_to_bigarray buf in
 	with_consoles
 		(fun b1 b2 a b ->
-			let x = Ring.Console.Front.unsafe_write a msg 0 (String.length msg) in
+			let x = Ring.Console.Front.unsafe_write a msg' in
 			let y = Ring.C_Console.unsafe_write b msg (String.length msg) in
 			assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
-			let x = Ring.Console.Back.unsafe_read a buf 0 (String.length buf) in
+			let x = Ring.Console.Back.unsafe_read a buf' in
 			assert_equal ~printer:string_of_int x (String.length msg);
-			assert_equal (String.sub buf 0 x) msg;
+			compare_bufs (Bigarray.Array1.sub buf' 0 x) msg';
 			let x = Ring.C_Console.Back.unsafe_read b buf (String.length buf) in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			assert_equal (String.sub buf 0 x) msg;
 			()
 		)
 
-let block =
+let block' =
 	let buf = Bigarray.Array1.create Bigarray.char Bigarray.c_layout (15 * 1024 * 1024) in
 	let counter = ref 0l in
 	for i = 0 to Bigarray.Array1.dim buf / 4 - 1 do
@@ -102,18 +120,12 @@ let block =
 	done;
 	buf
 
-let bigarray_to_string a =
-	let s = String.make (Bigarray.Array1.dim a) '\000' in
-	for i = 0 to Bigarray.Array1.dim a - 1 do
-		s.[0] <- Bigarray.Array1.unsafe_get a i
-	done;
-	s
-
 let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size () =
 	with_consoles
 		(fun b1 b2 a b ->
 			let read_chunk = String.make read_chunk_size '\000' in
-			let block = bigarray_to_string block in
+			let read_chunk' = string_to_bigarray read_chunk in
+			let block = bigarray_to_string block' in
 			let producer = ref 0 in
 			let consumed = ref 0 in
 			let length = String.length block in
@@ -123,12 +135,12 @@ let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size () =
 				let can_write = min write_chunk_size remaining in
 				let written =
 					if use_ocaml
-					then Ring.Console.Front.unsafe_write a block !producer can_write
+					then Ring.Console.Front.unsafe_write a (Bigarray.Array1.sub block' !producer can_write)
 					else Ring.C_Console.unsafe_write b (String.sub block !producer can_write) can_write in
 				producer := !producer + written;
 				let read =
 					if use_ocaml
-						then Ring.Console.Back.unsafe_read a read_chunk 0 read_chunk_size
+					then Ring.Console.Back.unsafe_read a read_chunk'
 					else Ring.C_Console.Back.unsafe_read b read_chunk read_chunk_size in
 				consumed := !consumed + read;
 				assert ((written <> 0) || (read <> 0))

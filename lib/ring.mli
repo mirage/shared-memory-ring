@@ -138,12 +138,12 @@ module type Bidirectional_byte_stream = sig
 	val of_buf: buf -> t
 
 	module Front : sig
-		val unsafe_write: t -> string -> int -> int -> int
-		val unsafe_read: t -> string -> int -> int -> int
+		val unsafe_write: t -> buf -> int
+		val unsafe_read: t -> buf -> int
 	end
 	module Back : sig
-		val unsafe_write: t -> string -> int -> int -> int
-		val unsafe_read: t -> string -> int -> int -> int
+		val unsafe_write: t -> buf -> int
+		val unsafe_read: t -> buf -> int
 	end
 end
 

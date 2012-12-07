@@ -261,35 +261,52 @@ module Reverse(RW: RW) = struct
 end
 
 module Pipe(RW: RW) = struct
-	let unsafe_write t buf ofs len =
+	let unsafe_write t buf =
 		let output = RW.get_ring_output t in
+		let output_length = length output in
+		(* Remember: the producer and consumer indices can be >> output_length *)
 		let cons = Int32.to_int (RW.get_ring_output_cons t) in
-		let prod = ref (Int32.to_int (RW.get_ring_output_prod t)) in
+		let prod = Int32.to_int (RW.get_ring_output_prod t) in
 		memory_barrier ();
-		let sent = ref 0 in
-		while !sent < len && (!prod - cons < (length output)) do
-			Bigarray.Array1.unsafe_set output (!prod mod (length output)) buf.[!sent + ofs];
-			incr prod;
-			incr sent;
-		done;
+		let cons' = cons mod output_length
+		and prod' = prod mod output_length in
+		let free_space =
+			if prod - cons >= output_length
+			then 0
+			else
+				if prod' >= cons'
+				then output_length - prod' (* in this write, fill to the end *)
+				else cons' - prod' in
+		let can_write = min (length buf) free_space in
+		Bigarray.Array1.blit
+			(Bigarray.Array1.sub buf 0 can_write)
+			(Bigarray.Array1.sub output prod' can_write);
 		write_memory_barrier ();
-		RW.set_ring_output_prod t (Int32.of_int !prod);
-		!sent
+		RW.set_ring_output_prod t (Int32.of_int (prod + can_write));
+		can_write
 
-	let unsafe_read t buf ofs len =
+	let unsafe_read t buf =
 		let input = RW.get_ring_input t in
-		let cons = ref (Int32.to_int (RW.get_ring_input_cons t)) in
+		let input_length = length input in
+		let cons = Int32.to_int (RW.get_ring_input_cons t) in
 		let prod = Int32.to_int (RW.get_ring_input_prod t) in
-		let pos = ref 0 in
 		memory_barrier ();
-		while (!pos < len && !cons < prod) do
-			buf.[!pos + ofs] <- Bigarray.Array1.unsafe_get input (!cons mod (length input));
-			incr pos;
-			incr cons;
-		done;
+		let cons' = cons mod input_length
+		and prod' = prod mod input_length in
+		let data_available =
+			if prod = cons
+			then 0
+			else
+				if prod' > cons'
+				then prod' - cons'
+				else input_length - cons' in (* read up to the last byte in the ring *)
+		let can_read = min (length buf) data_available in
+		Bigarray.Array1.blit
+			(Bigarray.Array1.sub input cons' can_read)
+			(Bigarray.Array1.sub buf 0 can_read);
 		memory_barrier (); (* XXX: not a write_memory_barrier? *)
-		RW.set_ring_input_cons t (Int32.of_int !cons);
-		!pos
+		RW.set_ring_input_cons t (Int32.of_int (cons + can_read));
+		can_read
 end
 
 module type Bidirectional_byte_stream = sig
@@ -297,12 +314,12 @@ module type Bidirectional_byte_stream = sig
 	val of_buf: buf -> t
 
 	module Front : sig
-		val unsafe_write: t -> string -> int -> int -> int
-		val unsafe_read: t -> string -> int -> int -> int
+		val unsafe_write: t -> buf -> int
+		val unsafe_read: t -> buf -> int
 	end
 	module Back : sig
-		val unsafe_write: t -> string -> int -> int -> int
-		val unsafe_read: t -> string -> int -> int -> int
+		val unsafe_write: t -> buf -> int
+		val unsafe_read: t -> buf -> int
 	end
 end
 
