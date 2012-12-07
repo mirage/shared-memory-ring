@@ -19,6 +19,22 @@ Library shared_memory_ring
   BuildDepends:       cstruct, cstruct.syntax
   CSources:           ring_stubs.c, barrier.h
 
+Library console_ring
+  CompiledObject:     best
+  Path:               xen
+  Findlibname:        console
+  Findlibparent:      shared_memory_ring
+  Modules:            Console_ring
+  BuildDepends:       shared-memory-ring
+
+Library xenstore_ring
+  CompiledObject:     best
+  Path:               xen
+  Findlibname:        xenstore
+  Findlibparent:      shared_memory_ring
+  Modules:            Xenstore_ring
+  BuildDepends:       shared-memory-ring
+
 Library lwt_shared_memory_ring
   CompiledObject:     best
   Path:               lwt
@@ -34,7 +50,7 @@ Executable ring_test
   Build$:             flag(tests)
   Custom:             true
   Install:            false
-  BuildDepends:       lwt, lwt.unix, shared-memory-ring, oUnit
+  BuildDepends:       lwt, lwt.unix, shared-memory-ring, shared-memory-ring.xenstore, shared-memory-ring.console, oUnit
   CSources:           old_ring_stubs.c, console.h, xenstore.h, barrier.h
 
 Executable lwt_test

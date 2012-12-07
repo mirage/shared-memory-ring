@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: a4beaa4f964c7b39966861e0277bec19)
+# DO NOT EDIT (digest: f60838cdc77103cbd2d4963aac7ef1cb)
 version = "0.1"
 description = "Xen-style shared memory rings"
 requires = "cstruct cstruct.syntax"
@@ -8,6 +8,17 @@ archive(byte, plugin) = "shared_memory_ring.cma"
 archive(native) = "shared_memory_ring.cmxa"
 archive(native, plugin) = "shared_memory_ring.cmxs"
 exists_if = "shared_memory_ring.cma"
+package "xenstore" (
+ version = "0.1"
+ description = "Xen-style shared memory rings"
+ requires = "shared-memory-ring"
+ archive(byte) = "xenstore_ring.cma"
+ archive(byte, plugin) = "xenstore_ring.cma"
+ archive(native) = "xenstore_ring.cmxa"
+ archive(native, plugin) = "xenstore_ring.cmxs"
+ exists_if = "xenstore_ring.cma"
+)
+
 package "lwt" (
  version = "0.1"
  description = "Xen-style shared memory rings"
@@ -17,6 +28,17 @@ package "lwt" (
  archive(native) = "lwt_shared_memory_ring.cmxa"
  archive(native, plugin) = "lwt_shared_memory_ring.cmxs"
  exists_if = "lwt_shared_memory_ring.cma"
+)
+
+package "console" (
+ version = "0.1"
+ description = "Xen-style shared memory rings"
+ requires = "shared-memory-ring"
+ archive(byte) = "console_ring.cma"
+ archive(byte, plugin) = "console_ring.cma"
+ archive(native) = "console_ring.cmxa"
+ archive(native, plugin) = "console_ring.cmxs"
+ exists_if = "console_ring.cma"
 )
 # OASIS_STOP
 

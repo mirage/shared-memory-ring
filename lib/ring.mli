@@ -133,6 +133,29 @@ end
 
 end
 
+module type RW = sig
+	(** A bi-directional pipe where 'input' and 'output' are from
+	    the frontend's (i.e. the guest's) point of view *)
+	val get_ring_input: buf -> buf
+	val get_ring_input_cons: buf -> int32
+	val get_ring_input_prod: buf -> int32
+	val set_ring_input_cons: buf -> int32 -> unit
+	val set_ring_input_prod: buf -> int32 -> unit
+
+	val get_ring_output: buf -> buf
+	val get_ring_output_cons: buf -> int32
+	val get_ring_output_prod: buf -> int32
+	val set_ring_output_cons: buf -> int32 -> unit
+	val set_ring_output_prod: buf -> int32 -> unit
+end
+
+module Reverse: functor(RW: RW) -> RW
+
+module Pipe: functor(RW: RW) -> sig
+	val unsafe_write: buf -> buf -> int
+	val unsafe_read: buf -> buf -> int
+end
+
 module type Bidirectional_byte_stream = sig
 	type t
 	val of_buf: buf -> t

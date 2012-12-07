@@ -48,7 +48,7 @@ let string_to_bigarray s =
 let with_xenstores f =
 	let b1 = alloc_page () in
 	let b2 = alloc_page () in
-	let a = Ring.Xenstore.of_buf b1 in
+	let a = Xenstore_ring.Ring.of_buf b1 in
 	let b = Old_ring.C_Xenstore.of_buf b2 in
 	f b1 b2 a b
 
@@ -65,11 +65,11 @@ let xenstore_hello () =
 	let buf' = string_to_bigarray buf in
 	with_xenstores
 		(fun b1 b2 a b ->
-			let x = Ring.Xenstore.Front.unsafe_write a msg' in
+			let x = Xenstore_ring.Ring.Front.unsafe_write a msg' in
 			let y = Old_ring.C_Xenstore.unsafe_write b msg (String.length msg) in
 			assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
-			let x = Ring.Xenstore.Back.unsafe_read a buf' in
+			let x = Xenstore_ring.Ring.Back.unsafe_read a buf' in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			compare_bufs (Bigarray.Array1.sub buf' 0 x) msg';
 			let x = Old_ring.C_Xenstore.Back.unsafe_read b buf (String.length buf) in
@@ -81,7 +81,7 @@ let xenstore_hello () =
 let with_consoles f =
 	let b1 = alloc_page () in
 	let b2 = alloc_page () in
-	let a = Ring.Console.of_buf b1 in
+	let a = Console_ring.Ring.of_buf b1 in
 	let b = Old_ring.C_Console.of_buf b2 in
 	f b1 b2 a b
 
@@ -98,11 +98,11 @@ let console_hello () =
 	let buf' = string_to_bigarray buf in
 	with_consoles
 		(fun b1 b2 a b ->
-			let x = Ring.Console.Front.unsafe_write a msg' in
+			let x = Console_ring.Ring.Front.unsafe_write a msg' in
 			let y = Old_ring.C_Console.unsafe_write b msg (String.length msg) in
 			assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
-			let x = Ring.Console.Back.unsafe_read a buf' in
+			let x = Console_ring.Ring.Back.unsafe_read a buf' in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			compare_bufs (Bigarray.Array1.sub buf' 0 x) msg';
 			let x = Old_ring.C_Console.Back.unsafe_read b buf (String.length buf) in
@@ -137,12 +137,12 @@ let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size ~verify () =
 				let can_write = min write_chunk_size remaining in
 				let written =
 					if use_ocaml
-					then Ring.Console.Front.unsafe_write a (Bigarray.Array1.sub block' !producer can_write)
+					then Console_ring.Ring.Front.unsafe_write a (Bigarray.Array1.sub block' !producer can_write)
 					else Old_ring.C_Console.unsafe_write b (String.sub block !producer can_write) can_write in
 				producer := !producer + written;
 				let read =
 					if use_ocaml
-					then Ring.Console.Back.unsafe_read a (Bigarray.Array1.sub output' !consumed (length - !consumed))
+					then Console_ring.Ring.Back.unsafe_read a (Bigarray.Array1.sub output' !consumed (length - !consumed))
 					else begin
 						let n = Old_ring.C_Console.Back.unsafe_read b read_chunk read_chunk_size in
 						begin
@@ -150,7 +150,7 @@ let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size ~verify () =
 								String.blit read_chunk 0 output !consumed n
 							with e ->
 								Printf.fprintf stderr "String.blit consumed=%d n=%d\n%!" !consumed n;
-								Printf.fprintf stderr "%s\n%!" (Ring.Console.(to_debug_string (of_buf b2)));
+								Printf.fprintf stderr "%s\n%!" (Console_ring.Ring.(to_debug_string (of_buf b2)));
 								raise e
 						end;
 						n
