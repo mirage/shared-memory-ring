@@ -25,7 +25,7 @@ let alloc_page () =
 
 let one_request_response () =
 	let page = alloc_page () in
-	let sring = Ring.Rpc.of_buf ~buf:page ~idx_size:1 ~name:"test" in
+	let sring = Ring.Rpc.of_buf ~buf:(Cstruct.of_bigarray page) ~idx_size:1 ~name:"test" in
 	let front = Ring.Rpc.Front.init sring in
 	let back = Ring.Rpc.Back.init sring in
 
