@@ -1,10 +1,10 @@
-OASISFormat: 0.2
+OASISFormat: 0.3
 Name:        shared-memory-ring
-Version:     0.1
+Version:     0.1.0
 Synopsis:    Xen-style shared memory rings
 Authors:     Anil Madhavapeddy, David Scott
 License:     ISC
-Plugins:     META (0.2)
+Plugins:     META (0.3)
 BuildTools:  ocamlbuild
 
 Flag tests
@@ -16,7 +16,7 @@ Library shared_memory_ring
   Path:               lib
   Findlibname:        shared-memory-ring
   Modules:            Ring
-  BuildDepends:       cstruct, cstruct.syntax
+  BuildDepends:       cstruct (>= 0.6.0), cstruct.syntax
   CSources:           barrier_stubs.c, barrier.h
 
 Library console_ring

@@ -17,11 +17,11 @@
 
 open Printf
 
-type buf = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type buf = Cstruct.t
 
-let sub t off len = Bigarray.Array1.sub t off len
+let sub t off len = Cstruct.sub t off len
 
-let length t = Bigarray.Array1.dim t
+let length t = Cstruct.len t
 
 external memory_barrier: unit -> unit = "caml_memory_barrier" "noalloc"
 external write_memory_barrier: unit -> unit = "caml_write_memory_barrier" "noalloc"
