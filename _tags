@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: c284104c791b43b6d3e5b0420e858b0b)
+# DO NOT EDIT (digest: 3ddb5c0986b678218a8f74080e69d770)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -35,15 +35,15 @@
 <lwt/*.ml{,i}>: pkg_cstruct
 <lwt/*.ml{,i}>: pkg_cstruct.syntax
 # Executable ring_test
-<lib_test/ring_test.{native,byte}>: use_libring_test_stubs
-<lib_test/ring_test.{native,byte}>: use_xenstore_ring
-<lib_test/ring_test.{native,byte}>: use_console_ring
-<lib_test/ring_test.{native,byte}>: use_shared_memory_ring
-<lib_test/ring_test.{native,byte}>: pkg_lwt
-<lib_test/ring_test.{native,byte}>: pkg_lwt.unix
-<lib_test/ring_test.{native,byte}>: pkg_oUnit
-<lib_test/ring_test.{native,byte}>: pkg_cstruct
-<lib_test/ring_test.{native,byte}>: pkg_cstruct.syntax
+<lib_test/ring_test.{native,byte,nobj.o}>: use_libring_test_stubs
+<lib_test/ring_test.{native,byte,nobj.o}>: use_xenstore_ring
+<lib_test/ring_test.{native,byte,nobj.o}>: use_console_ring
+<lib_test/ring_test.{native,byte,nobj.o}>: use_shared_memory_ring
+<lib_test/ring_test.{native,byte,nobj.o}>: pkg_lwt
+<lib_test/ring_test.{native,byte,nobj.o}>: pkg_lwt.unix
+<lib_test/ring_test.{native,byte,nobj.o}>: pkg_oUnit
+<lib_test/ring_test.{native,byte,nobj.o}>: pkg_cstruct
+<lib_test/ring_test.{native,byte,nobj.o}>: pkg_cstruct.syntax
 <lib_test/*.ml{,i}>: use_xenstore_ring
 <lib_test/*.ml{,i}>: use_console_ring
 <lib_test/*.ml{,i}>: use_shared_memory_ring
@@ -60,16 +60,16 @@
 "lib_test/old_ring_stubs.c": pkg_oUnit
 "lib_test/old_ring_stubs.c": pkg_cstruct
 "lib_test/old_ring_stubs.c": pkg_cstruct.syntax
-<lib_test/ring_test.{native,byte}>: custom
+<lib_test/ring_test.{native,byte,nobj.o}>: custom
 # Executable lwt_test
-<lwt_test/lwt_test.{native,byte}>: use_lwt_shared_memory_ring
-<lwt_test/lwt_test.{native,byte}>: use_shared_memory_ring
-<lwt_test/lwt_test.{native,byte}>: pkg_lwt
-<lwt_test/lwt_test.{native,byte}>: pkg_lwt.unix
-<lwt_test/lwt_test.{native,byte}>: pkg_oUnit
-<lwt_test/lwt_test.{native,byte}>: pkg_lwt.syntax
-<lwt_test/lwt_test.{native,byte}>: pkg_cstruct
-<lwt_test/lwt_test.{native,byte}>: pkg_cstruct.syntax
+<lwt_test/lwt_test.{native,byte,nobj.o}>: use_lwt_shared_memory_ring
+<lwt_test/lwt_test.{native,byte,nobj.o}>: use_shared_memory_ring
+<lwt_test/lwt_test.{native,byte,nobj.o}>: pkg_lwt
+<lwt_test/lwt_test.{native,byte,nobj.o}>: pkg_lwt.unix
+<lwt_test/lwt_test.{native,byte,nobj.o}>: pkg_oUnit
+<lwt_test/lwt_test.{native,byte,nobj.o}>: pkg_lwt.syntax
+<lwt_test/lwt_test.{native,byte,nobj.o}>: pkg_cstruct
+<lwt_test/lwt_test.{native,byte,nobj.o}>: pkg_cstruct.syntax
 <lwt_test/*.ml{,i}>: use_lwt_shared_memory_ring
 <lwt_test/*.ml{,i}>: use_shared_memory_ring
 <lwt_test/*.ml{,i}>: pkg_lwt
@@ -78,7 +78,7 @@
 <lwt_test/*.ml{,i}>: pkg_lwt.syntax
 <lwt_test/*.ml{,i}>: pkg_cstruct
 <lwt_test/*.ml{,i}>: pkg_cstruct.syntax
-<lwt_test/lwt_test.{native,byte}>: custom
+<lwt_test/lwt_test.{native,byte,nobj.o}>: custom
 # OASIS_STOP
 true: annot
 <*/*>: syntax_camlp4o

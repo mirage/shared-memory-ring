@@ -7,10 +7,6 @@ License:     ISC
 Plugins:     META (0.3)
 BuildTools:  ocamlbuild
 
-Flag tests
-  Description:        Build and run tests
-  Default:            true
-
 Library shared_memory_ring
   CompiledObject:     best
   Path:               lib
