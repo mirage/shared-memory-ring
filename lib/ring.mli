@@ -17,7 +17,7 @@
 
 (** Shared ring handling to communicate with other Xen domains *)
 
-type buf = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type buf = Cstruct.t
 
 module Rpc : sig
 

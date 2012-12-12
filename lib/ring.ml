@@ -294,9 +294,7 @@ module Pipe(RW: RW) = struct
 				then output_length - prod' (* in this write, fill to the end *)
 				else cons' - prod' in
 		let can_write = min (length buf) free_space in
-		Bigarray.Array1.blit
-			(Bigarray.Array1.sub buf 0 can_write)
-			(Bigarray.Array1.sub output prod' can_write);
+		Cstruct.blit buf 0 output prod' can_write;
 		write_memory_barrier ();
 		RW.set_ring_output_prod t (Int32.of_int (prod + can_write));
 		can_write
@@ -317,9 +315,7 @@ module Pipe(RW: RW) = struct
 				then prod' - cons'
 				else input_length - cons' in (* read up to the last byte in the ring *)
 		let can_read = min (length buf) data_available in
-		Bigarray.Array1.blit
-			(Bigarray.Array1.sub input cons' can_read)
-			(Bigarray.Array1.sub buf 0 can_read);
+		Cstruct.blit input cons' buf 0 can_read;
 		memory_barrier (); (* XXX: not a write_memory_barrier? *)
 		RW.set_ring_input_cons t (Int32.of_int (cons + can_read));
 		can_read
