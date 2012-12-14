@@ -24,7 +24,7 @@ module Rpc : sig
 (** Abstract type for a shared ring *)
 type sring
 
-(** Given a buf [buf] comprising pre-allocated contiguous
+(** Given a Cstruct.t [buf] comprising pre-allocated contiguous
     I/O pages, return an [sring] where the maximum size of each
     request/response is {[idx_size]}.
     @param buf pre-allocated contiguous I/O pages
@@ -32,7 +32,7 @@ type sring
     @param name Name of the shared ring, for pretty-printing
     @return shared ring value
   *)
-val of_buf : buf:buf -> idx_size:int -> name:string -> sring
+val of_buf : buf:Cstruct.t -> idx_size:int -> name:string -> sring
 
 (** The front-end of the shared ring, which issues requests and reads
     responses from the remote domain. 
@@ -49,10 +49,10 @@ module Front : sig
   val init : sring:sring -> ('a,'b) t
 
   (** Retrieve the request/response slot at the specified index as
-    * an buf.
+    * an Cstruct.t.
     * @param idx Index to retrieve, should be less than nr_ents
     *)
-  val slot : ('a,'b) t -> int -> buf
+  val slot : ('a,'b) t -> int -> Cstruct.t
 
   (** Retrieve number of slots in the shared ring *)
   val nr_ents : ('a,'b) t -> int
@@ -73,7 +73,7 @@ module Front : sig
     * the responses and wake up any sleeping threads that were
     * waiting for that particular response.
     *)
-  val ack_responses : ('a,'b) t -> (buf -> unit) -> unit
+  val ack_responses : ('a,'b) t -> (Cstruct.t -> unit) -> unit
 
   (** Update the shared request producer *)
   val push_requests : ('a,'b) t -> unit
@@ -100,7 +100,7 @@ module Back : sig
     * a Io_page.
     * @param idx Index to retrieve, should be less than nr_ents
     *)
-  val slot : ('a,'b) t -> int -> buf
+  val slot : ('a,'b) t -> int -> Cstruct.t
 
   (** Retrieve number of slots in the shared ring *)
   val nr_ents : ('a,'b) t -> int
@@ -125,7 +125,7 @@ module Back : sig
 
   (** [ack_requests t fn] applies [fn slot] to each [slot] containing
       a new request *)
-  val ack_requests : ('a, 'b) t -> (buf -> unit) -> unit
+  val ack_requests : ('a, 'b) t -> (Cstruct.t -> unit) -> unit
 
   (** pretty-print ring metadata *)
   val to_string : ('a, 'b) t -> string
@@ -136,39 +136,38 @@ end
 module type RW = sig
 	(** A bi-directional pipe where 'input' and 'output' are from
 	    the frontend's (i.e. the guest's) point of view *)
-	val get_ring_input: buf -> buf
-	val get_ring_input_cons: buf -> int32
-	val get_ring_input_prod: buf -> int32
-	val set_ring_input_cons: buf -> int32 -> unit
-	val set_ring_input_prod: buf -> int32 -> unit
+	val get_ring_input: Cstruct.t -> Cstruct.t
+	val get_ring_input_cons: Cstruct.t -> int32
+	val get_ring_input_prod: Cstruct.t -> int32
+	val set_ring_input_cons: Cstruct.t -> int32 -> unit
+	val set_ring_input_prod: Cstruct.t -> int32 -> unit
 
-	val get_ring_output: buf -> buf
-	val get_ring_output_cons: buf -> int32
-	val get_ring_output_prod: buf -> int32
-	val set_ring_output_cons: buf -> int32 -> unit
-	val set_ring_output_prod: buf -> int32 -> unit
+	val get_ring_output: Cstruct.t -> Cstruct.t
+	val get_ring_output_cons: Cstruct.t -> int32
+	val get_ring_output_prod: Cstruct.t -> int32
+	val set_ring_output_cons: Cstruct.t -> int32 -> unit
+	val set_ring_output_prod: Cstruct.t -> int32 -> unit
 end
 
 module Reverse: functor(RW: RW) -> RW
 
 module Pipe: functor(RW: RW) -> sig
-	val unsafe_write: buf -> buf -> int
-	val unsafe_read: buf -> buf -> int
+	val unsafe_write: Cstruct.t -> string -> int -> int -> int
+	val unsafe_read: Cstruct.t -> string -> int -> int -> int
 end
 
 module type Bidirectional_byte_stream = sig
-	type t
-	val of_buf: buf -> t
-	val to_debug_string: t -> string
+	val init: Cstruct.t -> unit
+	val to_debug_string: Cstruct.t -> string
+
 	module Front : sig
-		val unsafe_write: t -> buf -> int
-		val unsafe_read: t -> buf -> int
+		val unsafe_write: Cstruct.t -> string -> int -> int -> int
+		val unsafe_read: Cstruct.t -> string -> int -> int -> int
 	end
 	module Back : sig
-		val unsafe_write: t -> buf -> int
-		val unsafe_read: t -> buf -> int
+		val unsafe_write: Cstruct.t -> string -> int -> int -> int
+		val unsafe_read: Cstruct.t -> string -> int -> int -> int
 	end
 end
 
-module Console : Bidirectional_byte_stream
-module Xenstore : Bidirectional_byte_stream
+val zero: Cstruct.t -> unit

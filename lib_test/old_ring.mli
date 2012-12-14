@@ -19,6 +19,7 @@ type buf = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1
 
 module C_Console : sig
   type t
+  val zero: t -> unit
   external unsafe_write : t -> string -> int -> int = "caml_console_ring_write"
   external unsafe_read : t -> string -> int -> int = "caml_console_ring_read"
   module Back : sig
@@ -30,6 +31,7 @@ end
 
 module C_Xenstore : sig
   type t
+  val zero: t -> unit
   external unsafe_write : t -> string -> int -> int = "caml_xenstore_ring_write"
   external unsafe_read : t -> string -> int -> int = "caml_xenstore_ring_read"
   module Back : sig

@@ -31,6 +31,7 @@ module Ring = struct
 			uint32_t input_prod
 		} as little_endian
 	end
+	let init = zero
 	let to_debug_string t =
 		Printf.sprintf "input_cons = %ld prod = %ld; output cons = %ld prod = %ld"
 			(Layout.get_ring_input_cons t) (Layout.get_ring_input_prod t)

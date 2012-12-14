@@ -58,7 +58,7 @@ let initialise ring =
   set_ring_hdr_stuff ring 0L
 
 type sring = {
-  buf: buf;         (* Overall I/O buffer *)
+  buf: Cstruct.t;         (* Overall I/O buffer *)
   header_size: int; (* Header of shared ring variables, in bits *)
   idx_size: int;    (* Size in bits of an index slot *)
   nr_ents: int;     (* Number of index entries *)
@@ -249,17 +249,17 @@ end
 module type RW = sig
 	(** A bi-directional pipe where 'input' and 'output' are from
 	    the frontend's (i.e. the guest's) point of view *)
-	val get_ring_input: buf -> buf
-	val get_ring_input_cons: buf -> int32
-	val get_ring_input_prod: buf -> int32
-	val set_ring_input_cons: buf -> int32 -> unit
-	val set_ring_input_prod: buf -> int32 -> unit
+	val get_ring_input: Cstruct.t -> Cstruct.t
+	val get_ring_input_cons: Cstruct.t -> int32
+	val get_ring_input_prod: Cstruct.t -> int32
+	val set_ring_input_cons: Cstruct.t -> int32 -> unit
+	val set_ring_input_prod: Cstruct.t -> int32 -> unit
 
-	val get_ring_output: buf -> buf
-	val get_ring_output_cons: buf -> int32
-	val get_ring_output_prod: buf -> int32
-	val set_ring_output_cons: buf -> int32 -> unit
-	val set_ring_output_prod: buf -> int32 -> unit
+	val get_ring_output: Cstruct.t -> Cstruct.t
+	val get_ring_output_cons: Cstruct.t -> int32
+	val get_ring_output_prod: Cstruct.t -> int32
+	val set_ring_output_cons: Cstruct.t -> int32 -> unit
+	val set_ring_output_prod: Cstruct.t -> int32 -> unit
 end
 
 module Reverse(RW: RW) = struct
@@ -277,7 +277,7 @@ module Reverse(RW: RW) = struct
 end
 
 module Pipe(RW: RW) = struct
-	let unsafe_write t buf =
+	let unsafe_write t buf ofs len =
 		let output = RW.get_ring_output t in
 		let output_length = length output in
 		(* Remember: the producer and consumer indices can be >> output_length *)
@@ -293,13 +293,13 @@ module Pipe(RW: RW) = struct
 				if prod' >= cons'
 				then output_length - prod' (* in this write, fill to the end *)
 				else cons' - prod' in
-		let can_write = min (length buf) free_space in
-		Cstruct.blit buf 0 output prod' can_write;
+		let can_write = min len free_space in
+		Cstruct.blit_from_string buf ofs output prod' can_write;
 		write_memory_barrier ();
 		RW.set_ring_output_prod t (Int32.of_int (prod + can_write));
 		can_write
 
-	let unsafe_read t buf =
+	let unsafe_read t buf ofs len =
 		let input = RW.get_ring_input t in
 		let input_length = length input in
 		let cons = Int32.to_int (RW.get_ring_input_cons t) in
@@ -314,70 +314,28 @@ module Pipe(RW: RW) = struct
 				if prod' > cons'
 				then prod' - cons'
 				else input_length - cons' in (* read up to the last byte in the ring *)
-		let can_read = min (length buf) data_available in
-		Cstruct.blit input cons' buf 0 can_read;
+		let can_read = min len data_available in
+		Cstruct.blit_to_string input cons' buf ofs can_read;
 		memory_barrier (); (* XXX: not a write_memory_barrier? *)
 		RW.set_ring_input_cons t (Int32.of_int (cons + can_read));
 		can_read
 end
 
 module type Bidirectional_byte_stream = sig
-	type t
-	val of_buf: buf -> t
-
-	val to_debug_string: t -> string
+	val init: Cstruct.t -> unit
+	val to_debug_string: Cstruct.t -> string
 
 	module Front : sig
-		val unsafe_write: t -> buf -> int
-		val unsafe_read: t -> buf -> int
+		val unsafe_write: Cstruct.t -> string -> int -> int -> int
+		val unsafe_read: Cstruct.t -> string -> int -> int -> int
 	end
 	module Back : sig
-		val unsafe_write: t -> buf -> int
-		val unsafe_read: t -> buf -> int
+		val unsafe_write: Cstruct.t -> string -> int -> int -> int
+		val unsafe_read: Cstruct.t -> string -> int -> int -> int
 	end
 end
 
-module Xenstore = struct
-	type t = buf
-	let of_buf t = t
-	module Layout = struct
-		(* memory layout from the frontend's point of view *)
-		cstruct ring {
-			uint8_t output[1024];
-			uint8_t input[1024];
-			uint32_t output_cons;
-			uint32_t output_prod;
-			uint32_t input_cons;
-			uint32_t input_prod
-		} as little_endian
-	end
-	let to_debug_string t =
-		Printf.sprintf "input_cons = %ld prod = %ld; output cons = %ld prod = %ld"
-			(Layout.get_ring_input_cons t) (Layout.get_ring_input_prod t)
-			(Layout.get_ring_output_cons t) (Layout.get_ring_output_prod t)
-
-	module Front = Pipe(Layout)
-	module Back = Pipe(Reverse(Layout))
-end
-
-module Console = struct
-	type t = buf
-	let of_buf t = t
-	module Layout = struct
-		(* memory layout from the frontend's point of view *)
-		cstruct ring {
-			uint8_t input[1024];
-			uint8_t output[2048];
-			uint32_t input_cons;
-			uint32_t input_prod;
-			uint32_t output_cons;
-			uint32_t output_prod
-		} as little_endian
-	end
-	let to_debug_string t =
-		Printf.sprintf "input_cons = %ld prod = %ld; output cons = %ld prod = %ld"
-			(Layout.get_ring_input_cons t) (Layout.get_ring_input_prod t)
-			(Layout.get_ring_output_cons t) (Layout.get_ring_output_prod t)
-	module Front = Pipe(Layout)
-	module Back = Pipe(Reverse(Layout))
-end
+let zero t =
+	for i = 0 to Cstruct.len t - 1 do
+		Cstruct.set_char t i '\000'
+	done
