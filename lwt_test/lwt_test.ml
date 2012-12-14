@@ -32,11 +32,13 @@ let one_request_response () =
 	Printf.fprintf stdout "%s\n%!" (Ring.Rpc.Back.to_string back);
 	assert_equal ~msg:"more_to_do" ~printer:string_of_bool false (Ring.Rpc.Back.more_to_do back);
 
-	let client = Lwt_ring.Client.init front in
-	let server = Lwt_ring.Server.init back in
+	let client = Lwt_ring.Front.init front in
+	let server = Lwt_ring.Back.init back in
 
 	let id = () in
-	let request_th = Lwt_ring.Client.push_request_and_wait client (fun _ -> id) in
+	let must_notify = ref false in
+	let request_th = Lwt_ring.Front.push_request_and_wait client (fun () -> must_notify := true) (fun _ -> id) in
+	assert_equal ~msg:"must_notify" ~printer:string_of_bool true must_notify;
 	Printf.fprintf stdout "%s\n%!" (Ring.Rpc.Back.to_string back);
 	assert_equal ~msg:"more_to_do" ~printer:string_of_bool true (Ring.Rpc.Back.more_to_do back);
 
@@ -44,12 +46,12 @@ let one_request_response () =
 	Ring.Rpc.Back.ack_requests back (fun _ -> finished := true);
 	assert_equal ~msg:"ack_requests" ~printer:string_of_bool true (!finished);
 
-	Lwt_ring.Server.push_response server (fun _ -> ());
+	Lwt_ring.Back.push_response server (fun _ -> ());
 
 	Printf.fprintf stdout "%s\n%!" (Ring.Rpc.Back.to_string back);
 
     let replied = ref false in
-	Lwt_ring.Client.poll client (fun _ -> replied := true; id, ());
+	Lwt_ring.Front.poll client (fun _ -> replied := true; id, ());
 	assert_equal ~msg:"poll" ~printer:string_of_bool true (!replied);
 
 	assert_equal ~msg:"more_to_do" ~printer:string_of_bool false (Ring.Rpc.Back.more_to_do back);

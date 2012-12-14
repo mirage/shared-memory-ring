@@ -18,8 +18,8 @@
 
 open Ring
 
-(** The client front-end connection to the shared ring *)
-module Client : sig
+(** The (client) front-end connection to the shared ring *)
+module Front : sig
 
   (** 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
   type ('a,'b) t
@@ -31,16 +31,17 @@ module Client : sig
   val init : ('a, 'b) Ring.Rpc.Front.t -> ('a,'b) t
 
   (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
-  val push_request_async : ('a,'b) t -> (buf -> 'b) -> (unit -> unit) -> unit Lwt.t 
+  val push_request_async : ('a,'b) t -> (unit -> unit) -> (buf -> 'b) -> (unit -> unit) -> unit Lwt.t 
 
-  (** Given a function {[fn]} which writes to a slot and returns
+  (** Given a function {[fn] [notify_cb]} which writes to a slot and returns
       the request id, this will wait for a free request slot,
       write the request, and return with the response when it
       is available.
       @param fn Function that writes to a request slot and returns the request id
+      @param notify_cb Callback function which should trigger a notify of the remote
       @return Thread which returns the response value to the input request
     *)
-  val push_request_and_wait : ('a,'b) t -> (buf -> 'b) -> 'a Lwt.t
+  val push_request_and_wait : ('a,'b) t -> (unit -> unit) -> (buf -> 'b) -> 'a Lwt.t
 
   (** Poll the ring for responses, and wake up any threads that are
       sleeping (as a result of calling {[push_request_and_wait]}).
@@ -50,8 +51,8 @@ module Client : sig
   val poll : ('a,'b) t -> (buf -> ('b * 'a)) -> unit
 end
 
-(** The server back-end connection to the shared ring *)
-module Server : sig
+(** The (server) back-end connection to the shared ring *)
+module Back : sig
 
   (** 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
   type ('a,'b) t
@@ -62,8 +63,8 @@ module Server : sig
     *)
   val init : ('a, 'b) Ring.Rpc.Back.t -> ('a,'b) t
 
-  (** [push_response t fn] finds a free slot and applies it to [fn],
-      signalling the client that a response is ready. *)
-  val push_response : ('a, 'b) t -> (buf -> unit) -> unit
+  (** [push_response t notifyfn fn] finds a free slot and applies it to [fn],
+      signalling the client via [notifyfn] that a response is ready. *)
+  val push_response : ('a, 'b) t -> (unit -> unit) -> (buf -> unit) -> unit
 
 end

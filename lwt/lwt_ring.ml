@@ -17,7 +17,7 @@
 open Lwt
 open Printf
 
-module Client = struct
+module Front = struct
 
   type ('a, 'b) t = {
     ring: ('a, 'b) Ring.Rpc.Front.t;
@@ -55,14 +55,14 @@ module Client = struct
     |None -> ()
     |Some u -> Lwt.wakeup u ()
 
-  let rec push_request_and_wait t reqfn =
+  let rec push_request_and_wait t notifyfn reqfn =
     if Ring.Rpc.Front.get_free_requests t.ring > 0 then begin
       let slot_id = Ring.Rpc.Front.next_req_id t.ring in
       let slot = Ring.Rpc.Front.slot t.ring slot_id in
       let th,u = Lwt.task () in
       let id = reqfn slot in
-      if Ring.Rpc.Front.push_requests_and_check_notify t.ring
-      then printf "TX: need to signal event channel\n%!";
+	  if Ring.Rpc.Front.push_requests_and_check_notify t.ring
+	  then notifyfn ();
       Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
       Hashtbl.add t.wakers id u;
       th
@@ -71,17 +71,17 @@ module Client = struct
       let node = Lwt_sequence.add_r u t.waiters in
       Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
       th >>
-      push_request_and_wait t reqfn
+      push_request_and_wait t notifyfn reqfn
     end
 
-   let push_request_async t reqfn freefn =
+   let push_request_async t notifyfn reqfn freefn =
      lwt () = wait_for_free_slot t in
      let slot_id = Ring.Rpc.Front.next_req_id t.ring in
      let slot = Ring.Rpc.Front.slot t.ring slot_id in
      let th,u = Lwt.task () in
      let id = reqfn slot in
      if Ring.Rpc.Front.push_requests_and_check_notify t.ring
-     then printf "TX: need to signal event channel\n%!";
+     then notifyfn ();
      Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
      Hashtbl.add t.wakers id u;
      let _ = th >> return (freefn ()) in
@@ -89,7 +89,7 @@ module Client = struct
 
 end
 
-module Server = struct
+module Back = struct
   type ('a, 'b) t = {
     ring: ('a, 'b) Ring.Rpc.Back.t;
   }
@@ -97,12 +97,12 @@ module Server = struct
   let init ring =
     { ring }
 
-  let push_response t rspfn =
+  let push_response t notifyfn rspfn =
 	  let slot_id = Ring.Rpc.Back.next_res_id t.ring in
 	  let slot = Ring.Rpc.Back.slot t.ring slot_id in
 	  rspfn slot;
 	  if Ring.Rpc.Back.push_responses_and_check_notify t.ring
-	  then printf "TX: need to signal event channel\n%!"
+	  then notifyfn ()
 
   let poll t fn =
     Ring.Rpc.Back.ack_requests t.ring fn
