@@ -16,6 +16,8 @@
 
 (** Lwt interface to shared memory ring *)
 
+exception Shutdown
+
 open Ring
 
 (** The (client) front-end connection to the shared ring *)
@@ -31,7 +33,7 @@ module Front : sig
   val init : ('a, 'b) Ring.Rpc.Front.t -> ('a,'b) t
 
   (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
-  val push_request_async : ('a,'b) t -> (unit -> unit) -> (buf -> 'b) -> (unit -> unit) -> unit Lwt.t 
+  val push_request_async : ('a,'b) t -> (unit -> unit) -> (buf -> 'b) -> ('a Lwt.t -> unit Lwt.t) -> unit Lwt.t 
 
   (** Given a function {[fn] [notify_cb]} which writes to a slot and returns
       the request id, this will wait for a free request slot,
@@ -49,6 +51,8 @@ module Front : sig
       such as an event channel signal.
     *)
   val poll : ('a,'b) t -> (buf -> ('b * 'a)) -> unit
+
+  val shutdown : ('a, 'b) t -> unit
 end
 
 (** The (server) back-end connection to the shared ring *)

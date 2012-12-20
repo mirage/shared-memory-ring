@@ -17,6 +17,8 @@
 open Lwt
 open Printf
 
+exception Shutdown
+
 module Front = struct
 
   type ('a, 'b) t = {
@@ -84,8 +86,19 @@ module Front = struct
      then notifyfn ();
      Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
      Hashtbl.add t.wakers id u;
-     let _ = th >> return (freefn ()) in
+     lwt () = freefn th in
      return ()
+
+   let shutdown t =
+     Hashtbl.iter (fun id th ->
+       Lwt.wakeup_exn th Shutdown
+     ) t.wakers;
+     (* Check for any sleepers waiting for free space *)
+     let rec loop () =
+       match Lwt_sequence.take_opt_l t.waiters with
+       | None -> ()
+       | Some u -> Lwt.wakeup_exn u Shutdown; loop ()
+     in loop ()
 
 end
 
