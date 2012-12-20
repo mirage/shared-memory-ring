@@ -86,7 +86,7 @@ module Front = struct
      then notifyfn ();
      Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
      Hashtbl.add t.wakers id u;
-     lwt () = freefn th in
+     let _ = freefn th in
      return ()
 
    let shutdown t =
