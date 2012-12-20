@@ -38,7 +38,7 @@ let one_request_response () =
 	let id = () in
 	let must_notify = ref false in
 	let request_th = Lwt_ring.Front.push_request_and_wait client (fun () -> must_notify := true) (fun _ -> id) in
-	assert_equal ~msg:"must_notify" ~printer:string_of_bool true must_notify;
+	assert_equal ~msg:"must_notify" ~printer:string_of_bool true (!must_notify);
 	Printf.fprintf stdout "%s\n%!" (Ring.Rpc.Back.to_string back);
 	assert_equal ~msg:"more_to_do" ~printer:string_of_bool true (Ring.Rpc.Back.more_to_do back);
 
@@ -46,7 +46,7 @@ let one_request_response () =
 	Ring.Rpc.Back.ack_requests back (fun _ -> finished := true);
 	assert_equal ~msg:"ack_requests" ~printer:string_of_bool true (!finished);
 
-	Lwt_ring.Back.push_response server (fun _ -> ());
+	Lwt_ring.Back.push_response server (fun () -> ()) (fun _ -> ());
 
 	Printf.fprintf stdout "%s\n%!" (Ring.Rpc.Back.to_string back);
 
