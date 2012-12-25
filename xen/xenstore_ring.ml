@@ -32,11 +32,12 @@ module Ring = struct
 		} as little_endian
 	end
 	let init = zero
-	let to_debug_string t =
-		Printf.sprintf "input_cons = %ld prod = %ld; output cons = %ld prod = %ld"
-			(Layout.get_ring_input_cons t) (Layout.get_ring_input_prod t)
-			(Layout.get_ring_output_cons t) (Layout.get_ring_output_prod t)
-			
+	let to_debug_map t = [
+		"input-cons", Int32.to_string (Layout.get_ring_input_cons t);
+		"input-prod", Int32.to_string (Layout.get_ring_input_prod t);
+		"output-cons", Int32.to_string (Layout.get_ring_output_cons t);
+		"output-prod", Int32.to_string (Layout.get_ring_output_prod t);
+	]
 	module Front = Pipe(Layout)
 	module Back = Pipe(Reverse(Layout))
 end

@@ -158,7 +158,7 @@ end
 
 module type Bidirectional_byte_stream = sig
 	val init: Cstruct.t -> unit
-	val to_debug_string: Cstruct.t -> string
+	val to_debug_map: Cstruct.t -> (string * string) list
 
 	module Front : sig
 		val unsafe_write: Cstruct.t -> string -> int -> int -> int
