@@ -146,7 +146,6 @@ let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size ~verify () =
 								String.blit read_chunk 0 output !consumer n
 							with e ->
 								Printf.fprintf stderr "String.blit consumed=%d n=%d\n%!" !consumer n;
-								Printf.fprintf stderr "%s\n%!" (Console_ring.Ring.(to_debug_string (Cstruct.of_bigarray b2)));
 								raise e
 						end;
 						n
