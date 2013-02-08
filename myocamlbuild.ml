@@ -1,7 +1,7 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 6db1faea0bf65d85a37c695085f83b25) *)
+(* DO NOT EDIT (digest: fa01762308f97d953e3d7ec39aa4f64f) *)
 module OASISGettext = struct
-# 21 "/home/djs/oasis/src/oasis/OASISGettext.ml"
+(* # 21 "/home/avsm/.opam/system/build/oasis-mirage.0.3.0a/src/oasis/OASISGettext.ml" *)
 
   let ns_ str =
     str
@@ -24,7 +24,7 @@ module OASISGettext = struct
 end
 
 module OASISExpr = struct
-# 21 "/home/djs/oasis/src/oasis/OASISExpr.ml"
+(* # 21 "/home/avsm/.opam/system/build/oasis-mirage.0.3.0a/src/oasis/OASISExpr.ml" *)
 
 
 
@@ -116,7 +116,7 @@ end
 
 # 117 "myocamlbuild.ml"
 module BaseEnvLight = struct
-# 21 "/home/djs/oasis/src/base/BaseEnvLight.ml"
+(* # 21 "/home/avsm/.opam/system/build/oasis-mirage.0.3.0a/src/base/BaseEnvLight.ml" *)
 
   module MapString = Map.Make(String)
 
@@ -213,76 +213,8 @@ end
 
 
 # 215 "myocamlbuild.ml"
-module MyOCamlbuildXen = struct
-# 22 "/home/djs/oasis/src/plugins/ocamlbuild/MyOCamlbuildXen.ml"
-
-  open Ocamlbuild_plugin
-
-  module Util = struct
-    let split s ch =
-      let x = ref [] in
-      let rec go s =
-        let pos = String.index s ch in
-        x := (String.before s pos)::!x;
-        go (String.after s (pos + 1))
-      in
-      try
-        go s
-      with Not_found -> !x
-
-      let split_nl s = split s '\n'
-      let run_and_read x = List.hd (split_nl (Ocamlbuild_pack.My_unix.run_and_read x))
-  end
-
-  module Xen = struct
-    (** Link to a standalone Xen microkernel *)
-    let cc_xen_link bc tags arg out env =
-      (* XXX check ocamlfind path here *)
-      let xenlib = Util.run_and_read "ocamlfind query mirage" in
-      let jmp_obj = Px (xenlib / "longjmp.o") in
-      let head_obj = Px (xenlib / "x86_64.o") in
-      let ocamllib = match bc with |true -> "ocamlbc" |false -> "ocaml" in
-      let ld = getenv ~default:"ld" "LD" in
-      let ldlibs = List.map (fun x -> Px (xenlib / ("lib" ^ x ^ ".a")))
-        [ocamllib; "xen"; "xencaml"; "diet"; "m"] in
-      Cmd (S ( A ld :: [ T(tags++"link"++"xen");
-        A"-d"; A"-nostdlib"; A"-m"; A"elf_x86_64"; A"-T";
-        Px (xenlib / "mirage-x86_64.lds");  head_obj; P arg ]
-        @ ldlibs @ [jmp_obj; A"-o"; Px out]))
-
-    let cc_xen_bc_link tags arg out env = cc_xen_link true tags arg out env
-    let cc_xen_nc_link tags arg out env = cc_xen_link false tags arg out env
-
-    (* Rewrite sections for Xen LDS layout *)
-    let xen_objcopy dst src env builder =
-      let dst = env dst in
-      let src = env src in
-      let cmd = ["objcopy";"--rename-section";".bss=.mlbss";"--rename-section";
-        ".data=.mldata";"--rename-section";".rodata=.mlrodata";
-        "--rename-section";".text=.mltext"] in
-      let cmds = List.map (fun x -> A x) cmd in
-      Cmd (S (cmds @ [Px src; Px dst]))
-
-    let rules () =
-      let cc_link_c_implem ?tag fn c o env build =
-        let c = env c and o = env o in
-        fn (tags_of_pathname c++"implem"+++tag) c o env
-      in
-      rule "final link: %.nobj.o -> %.xen" ~prod:"%(file).xen" ~dep:"%(file).nobj.o"
-        (cc_link_c_implem cc_xen_nc_link "%(file).nobj.o" "%(file).xen")
-
-  end
-
-  let dispatch =
-    function
-      | After_rules ->
-          Xen.rules ()       
-      | _ -> 
-          ()
-end
-
 module MyOCamlbuildFindlib = struct
-# 21 "/home/djs/oasis/src/plugins/ocamlbuild/MyOCamlbuildFindlib.ml"
+(* # 21 "/home/avsm/.opam/system/build/oasis-mirage.0.3.0a/src/plugins/ocamlbuild/MyOCamlbuildFindlib.ml" *)
 
   (** OCamlbuild extension, copied from 
     * http://brion.inria.fr/gallium/index.php/Using_ocamlfind_with_ocamlbuild
@@ -358,11 +290,20 @@ module MyOCamlbuildFindlib = struct
            * linking. *)
           List.iter 
             begin fun pkg ->
-              flag ["ocaml"; "compile";  "pkg_"^pkg] & S[A"-package"; A pkg];
-              flag ["ocaml"; "ocamldep"; "pkg_"^pkg] & S[A"-package"; A pkg];
-              flag ["ocaml"; "doc";      "pkg_"^pkg] & S[A"-package"; A pkg];
-              flag ["ocaml"; "link";     "pkg_"^pkg] & S[A"-package"; A pkg];
-              flag ["ocaml"; "infer_interface"; "pkg_"^pkg] & S[A"-package"; A pkg];
+              let base_args = [A"-package"; A pkg] in
+              let syn_args = [A"-syntax"; A "camlp4o"] in
+              let args =
+  			  (* heuristic to identify syntax extensions: 
+  				 whether they end in ".syntax"; some might not *)
+                if Filename.check_suffix pkg "syntax"
+                then syn_args @ base_args
+                else base_args
+              in
+              flag ["ocaml"; "compile";  "pkg_"^pkg] & S args;
+              flag ["ocaml"; "ocamldep"; "pkg_"^pkg] & S args;
+              flag ["ocaml"; "doc";      "pkg_"^pkg] & S args;
+              flag ["ocaml"; "link";     "pkg_"^pkg] & S base_args;
+              flag ["ocaml"; "infer_interface"; "pkg_"^pkg] & S args;
             end 
             (find_packages ());
 
@@ -394,7 +335,7 @@ module MyOCamlbuildFindlib = struct
 end
 
 module MyOCamlbuildBase = struct
-# 21 "/home/djs/oasis/src/plugins/ocamlbuild/MyOCamlbuildBase.ml"
+(* # 21 "/home/avsm/.opam/system/build/oasis-mirage.0.3.0a/src/plugins/ocamlbuild/MyOCamlbuildBase.ml" *)
 
   (** Base functions for writing myocamlbuild.ml
       @author Sylvain Le Gall
@@ -410,7 +351,7 @@ module MyOCamlbuildBase = struct
   type name = string 
   type tag = string 
 
-# 56 "/home/djs/oasis/src/plugins/ocamlbuild/MyOCamlbuildBase.ml"
+(* # 56 "/home/avsm/.opam/system/build/oasis-mirage.0.3.0a/src/plugins/ocamlbuild/MyOCamlbuildBase.ml" *)
 
   type t =
       {
@@ -527,10 +468,19 @@ module MyOCamlbuildBase = struct
             let native_output_obj x =
               OC.link_gen "cmx" "cmxa" !Options.ext_lib [!Options.ext_obj; "cmi"] 
                 OC.ocamlopt_link_prog
-                (fun tags -> tags++"ocaml"++"link"++"byte"++"output_obj") x
+                (fun tags -> tags++"ocaml"++"link"++"native"++"output_obj") x
             in
             rule "ocaml: cmx* and o* -> .nobj.o" ~prod:"%.nobj.o" ~deps:["%.cmx"; "%.o"]
               (native_output_obj "%.cmx" "%.nobj.o");
+
+            (* Add output_obj rules mapped to .bobj.o *)
+            let bytecode_output_obj x =
+              OC.link_gen "cmo" "cma" !Options.ext_lib [!Options.ext_obj; "cmi"] 
+                OC.ocamlc_link_prog
+                (fun tags -> tags++"ocaml"++"link"++"byte"++"output_obj") x
+            in
+            rule "ocaml: cmo* -> .nobj.o" ~prod:"%.bobj.o" ~deps:["%.cmo"]
+              (bytecode_output_obj "%.cmo" "%.bobj.o");
 
               (* Add flags *)
               List.iter
@@ -548,13 +498,12 @@ module MyOCamlbuildBase = struct
       [
         dispatch t;
         MyOCamlbuildFindlib.dispatch;
-        MyOCamlbuildXen.dispatch;
       ]
 
 end
 
 
-# 557 "myocamlbuild.ml"
+# 506 "myocamlbuild.ml"
 open Ocamlbuild_plugin;;
 let package_default =
   {
@@ -589,6 +538,6 @@ let package_default =
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
-# 593 "myocamlbuild.ml"
+# 542 "myocamlbuild.ml"
 (* OASIS_STOP *)
 Ocamlbuild_plugin.dispatch dispatch_default;;
