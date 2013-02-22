@@ -1,3 +1,7 @@
+0.3.0 (2013-02-22):
+* Add support for ARM: each architecture requires support for memory barrier primitives
+* For the xenstore-style rings, apply the memory barriers in the same way as the original xen implementation
+
 0.2.0 (2012-02-08):
 * Add `Lwt_ring` write and push functions that separate updates and notification, to support fragment-based protocols.
 * Improve diagnostics support.
