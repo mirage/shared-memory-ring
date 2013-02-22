@@ -7,10 +7,16 @@
 #define _BARRIER_H_
 
 /* This is a barrier for the compiler only, NOT the processor! */
-#define barrier() __asm__ __volatile__("": : :"memory")
+#define barrier() asm volatile ( "" : : : "memory")
 
-#define mb()    __asm__ __volatile__ ("mfence":::"memory")
-#define rmb()   __asm__ __volatile__ ("lfence":::"memory")
-#define wmb()	__asm__ __volatile__ ("sfence" ::: "memory") /* From CONFIG_UNORDERED_IO (linux) */
+#if defined(__i386__)
+#define xen_mb()  asm volatile ( "lock; addl $0,0(%%esp)" : : : "memory" )
+#elif defined(__x86_64__)
+#define xen_mb()  asm volatile ( "mfence" : : : "memory")
+#elif defined(__arm__)
+#define xen_mb()   asm volatile ("dmb" : : : "memory")
+#else
+#error "I don't know how to implement barriers for this architecture"
+#endif
 
 #endif /* _BARRIER_H_ */

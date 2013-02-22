@@ -24,7 +24,6 @@ let sub t off len = Cstruct.sub t off len
 let length t = Cstruct.len t
 
 external memory_barrier: unit -> unit = "caml_memory_barrier" "noalloc"
-external write_memory_barrier: unit -> unit = "caml_write_memory_barrier" "noalloc"
 
 module Rpc = struct
 
@@ -85,11 +84,11 @@ let sring_rsp_event sring =
 	Int32.to_int (get_ring_hdr_rsp_event sring.buf)
 
 let sring_push_requests sring req_prod =
-	write_memory_barrier (); (* ensure requests are seen before the index is updated *)
+	memory_barrier (); (* ensure requests are seen before the index is updated *)
 	set_ring_hdr_req_prod sring.buf (Int32.of_int req_prod)
 
 let sring_push_responses sring rsp_prod =
-	write_memory_barrier (); (* ensure requests are seen before the index is updated *)
+	memory_barrier (); (* ensure requests are seen before the index is updated *)
 	set_ring_hdr_rsp_prod sring.buf (Int32.of_int rsp_prod)
 
 let sring_set_rsp_event sring rsp_cons =
@@ -295,7 +294,7 @@ module Pipe(RW: RW) = struct
 				else cons' - prod' in
 		let can_write = min len free_space in
 		Cstruct.blit_from_string buf ofs output prod' can_write;
-		write_memory_barrier ();
+		memory_barrier ();
 		RW.set_ring_output_prod t (Int32.of_int (prod + can_write));
 		can_write
 

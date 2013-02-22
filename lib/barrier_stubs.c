@@ -24,19 +24,9 @@
 
 #include "barrier.h"
 
-#define xen_mb() mb()
-#define xen_wmb() wmb()
-
 CAMLprim value
 caml_memory_barrier()
 {
   xen_mb();
-  return Val_unit;
-}
-
-CAMLprim value
-caml_write_memory_barrier()
-{
-  wmb();
   return Val_unit;
 }

@@ -24,7 +24,6 @@ let sub t off len = Bigarray.Array1.sub t off len
 let length t = Bigarray.Array1.dim t
 
 external memory_barrier: unit -> unit = "caml_memory_barrier" "noalloc"
-external write_memory_barrier: unit -> unit = "caml_write_memory_barrier" "noalloc"
 
 (* Raw ring handling section *)
 (* TODO both of these can be combined into one set of bindings now *)
