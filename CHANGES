@@ -1,4 +1,8 @@
-0.1.0 (2012-12-20)
+0.2.0 (2012-02-08):
+* Add `Lwt_ring` write and push functions that separate updates and notification, to support fragment-based protocols.
+* Improve diagnostics support.
+
+0.1.0 (2012-12-20):
 * Initial public release.
 * Update to new cstruct 0.6.0 API
 * [xen] support for suspend and resume

@@ -32,6 +32,13 @@ module Front : sig
     *)
   val init : ('a, 'b) Ring.Rpc.Front.t -> ('a,'b) t
 
+  (** Block until a ring slot is free, write the request and return the response thread *)
+  val write : ('a, 'b) t -> (buf -> 'b) -> 'a Lwt.t Lwt.t
+
+  (** Advance the shared ring pointers, exposing the written requests to the other end.
+      If the other end won't see the update, call the provided notify function to signal it. *)
+  val push : ('a, 'b) t -> (unit -> unit) -> unit
+
   (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
   val push_request_async : ('a,'b) t -> (unit -> unit) -> (buf -> 'b) -> ('a Lwt.t -> unit Lwt.t) -> unit Lwt.t 
 

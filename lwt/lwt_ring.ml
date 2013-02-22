@@ -57,35 +57,28 @@ module Front = struct
     |None -> ()
     |Some u -> Lwt.wakeup u ()
 
-  let rec push_request_and_wait t notifyfn reqfn =
-    if Ring.Rpc.Front.get_free_requests t.ring > 0 then begin
-      let slot_id = Ring.Rpc.Front.next_req_id t.ring in
-      let slot = Ring.Rpc.Front.slot t.ring slot_id in
-      let th,u = Lwt.task () in
-      let id = reqfn slot in
-	  if Ring.Rpc.Front.push_requests_and_check_notify t.ring
-	  then notifyfn ();
-      Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
-      Hashtbl.add t.wakers id u;
-      th
-    end else begin
-      let th,u = Lwt.task () in
-      let node = Lwt_sequence.add_r u t.waiters in
-      Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-      th >>
-      push_request_and_wait t notifyfn reqfn
-    end
+  let write t reqfn =
+    lwt () = wait_for_free_slot t in
+    let slot_id = Ring.Rpc.Front.next_req_id t.ring in
+    let slot = Ring.Rpc.Front.slot t.ring slot_id in
+    let th, u = Lwt.task () in
+    let id = reqfn slot in
+    Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
+    Hashtbl.add t.wakers id u;
+    return th
+
+  let push t notifyfn =
+    if Ring.Rpc.Front.push_requests_and_check_notify t.ring
+    then notifyfn ()
+
+  let push_request_and_wait t notifyfn reqfn =
+    lwt th = write t reqfn in
+    push t notifyfn;
+    th
 
    let push_request_async t notifyfn reqfn freefn =
-     lwt () = wait_for_free_slot t in
-     let slot_id = Ring.Rpc.Front.next_req_id t.ring in
-     let slot = Ring.Rpc.Front.slot t.ring slot_id in
-     let th,u = Lwt.task () in
-     let id = reqfn slot in
-     if Ring.Rpc.Front.push_requests_and_check_notify t.ring
-     then notifyfn ();
-     Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
-     Hashtbl.add t.wakers id u;
+     lwt th = write t reqfn in
+     push t notifyfn;
      let _ = freefn th in
      return ()
 
