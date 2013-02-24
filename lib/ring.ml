@@ -327,6 +327,15 @@ module Pipe(RW: RW) = struct
 		memory_barrier (); (* XXX: not a write_memory_barrier? *)
 		RW.set_ring_input_cons t (Int32.of_int (cons + can_read));
 		can_read
+
+	let rec repeat f from buf ofs len =
+		let n = f from buf ofs len in
+		if n < len && n > 0
+		then n + (repeat f from buf (ofs + n) (len - n))
+		else n
+
+	let unsafe_read = repeat unsafe_read
+	let unsafe_write = repeat unsafe_write
 end
 
 module type Bidirectional_byte_stream = sig
