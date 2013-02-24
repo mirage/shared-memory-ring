@@ -283,8 +283,13 @@ module Pipe(RW: RW) = struct
 		let cons = Int32.to_int (RW.get_ring_output_cons t) in
 		let prod = Int32.to_int (RW.get_ring_output_prod t) in
 		memory_barrier ();
-		let cons' = cons mod output_length
-		and prod' = prod mod output_length in
+		(* 0 <= cons', prod' <= output_length *)
+		let cons' =
+			let x = cons mod output_length in
+			if x < 0 then x + output_length else x
+		and prod' =
+			let x = prod mod output_length in
+			if x < 0 then x + output_length else x in
 		let free_space =
 			if prod - cons >= output_length
 			then 0
@@ -304,8 +309,12 @@ module Pipe(RW: RW) = struct
 		let cons = Int32.to_int (RW.get_ring_input_cons t) in
 		let prod = Int32.to_int (RW.get_ring_input_prod t) in
 		memory_barrier ();
-		let cons' = cons mod input_length
-		and prod' = prod mod input_length in
+		let cons' =
+			let x = cons mod input_length in
+			if x < 0 then x + input_length else x
+		and prod' =
+			let x = prod mod input_length in
+			if x < 0 then x + input_length else x in
 		let data_available =
 			if prod = cons
 			then 0
