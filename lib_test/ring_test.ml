@@ -35,7 +35,7 @@ let compare_bufs a b =
 let bigarray_to_string a =
 	let s = String.make (Bigarray.Array1.dim a) '\000' in
 	for i = 0 to Bigarray.Array1.dim a - 1 do
-		s.[0] <- Bigarray.Array1.unsafe_get a i
+		s.[i] <- Bigarray.Array1.unsafe_get a i
 	done;
 	s
 
