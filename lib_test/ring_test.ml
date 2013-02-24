@@ -72,6 +72,47 @@ let xenstore_hello () =
 			()
 		)
 
+cstruct ring {
+	uint8_t output[1024];
+	uint8_t input[1024];
+	uint32_t output_cons;
+	uint32_t output_prod;
+	uint32_t input_cons;
+	uint32_t input_prod
+} as little_endian
+
+
+let check_signed_unsigned_write () =
+	(* Check for errors performing comparison across int32 max_int *)
+	let msg = "this is a test" in
+	let ofs = Int32.(succ (succ max_int)) in
+	with_xenstores
+		(fun b1 b2 a b ->
+			set_ring_output_cons a ofs;
+			set_ring_output_prod a ofs;
+			set_ring_output_cons (Cstruct.of_bigarray b2) ofs;
+			set_ring_output_prod (Cstruct.of_bigarray b2) ofs;
+			let x = Xenstore_ring.Ring.Front.unsafe_write a msg 0 (String.length msg) in
+			let y = Old_ring.C_Xenstore.unsafe_write b msg (String.length msg) in
+			assert_equal ~printer:string_of_int x y;
+			compare_bufs b1 b2;
+		)
+
+let check_signed_unsigned_read () =
+	let msg = "this is a test" in
+	let buf = String.make (String.length msg) '\000' in
+	with_xenstores
+		(fun b1 b2 a b ->
+			set_ring_output_cons a (Int32.(pred (pred max_int)));
+			set_ring_output_prod a (Int32.(succ (succ max_int)));
+			set_ring_output_cons (Cstruct.of_bigarray b2) (Int32.(pred (pred max_int)));
+ 			set_ring_output_prod (Cstruct.of_bigarray b2) (Int32.(succ (succ max_int)));
+			let x' = Xenstore_ring.Ring.Back.unsafe_read a buf 0 (String.length buf) in
+			let y' = Old_ring.C_Xenstore.Back.unsafe_read b buf (String.length buf) in
+			assert_equal ~printer:string_of_int x' y';
+			compare_bufs b1 b2;
+		)
+
 let with_consoles f =
 	let b1 = alloc_page () in
 	let b2 = alloc_page () in
@@ -183,6 +224,8 @@ let _ =
   let suite = "ring" >:::
     [
 		"xenstore_init" >:: xenstore_init;
+		"check_signed_unsigned_read" >:: check_signed_unsigned_read;
+		"check_signed_unsigned_write" >:: check_signed_unsigned_write;
 		"xenstore_hello" >:: xenstore_hello;
 		"console_init" >:: console_init;
 		"console_hello" >:: console_hello;
