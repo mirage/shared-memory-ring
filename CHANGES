@@ -1,3 +1,6 @@
+0.3.1 (2013-03-15):
+* Fix unsigned comparisons in console/xenstore ring handling
+
 0.3.0 (2013-02-22):
 * Add support for ARM: each architecture requires support for memory barrier primitives
 * For the xenstore-style rings, apply the memory barriers in the same way as the original xen implementation
