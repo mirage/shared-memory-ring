@@ -15,19 +15,95 @@
  *)
 open Lwt
 
-let create name =
-    lwt fd = Lwt_unix.openfile name [ Unix.O_CREAT; Unix.O_TRUNC ] 0o0644 in
-    Lwt_unix.close fd
+module type IO_PAGE = sig
+    type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+    val get_order : int -> t
+    val to_pages : t -> t list
+end
 
-let openmem name =
-    lwt fd = Lwt_unix.openfile name [ Unix.O_RDWR ] 0o0 in
-    try_lwt
-        return (Bigarray.Genarray.map_file (Lwt_unix.unix_file_descr fd) Bigarray.char Bigarray.c_layout true [| 4096 |])
-    finally
-        Lwt_unix.close fd
+let make_counter () =
+    let counter = ref 0 in
+    fun () ->
+        let result = !counter in
+        incr counter;
+        result
 
-(*
-module EVENTCHN = sig
+module Io_page = struct
+    type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+    let page_size = 4096
+
+    let next_address = make_counter ()
+
+    let get_order order =
+        let rec pow2 = function
+          | 0 -> 1
+          | n -> n * (pow2 (n - 1)) in
+        let name = Printf.sprintf "page.%d" (next_address ()) in
+        let fd = Unix.openfile name [ Unix.O_CREAT; Unix.O_TRUNC; Unix.O_RDWR ] 0o0644 in
+        try
+            Bigarray.Array1.map_file fd Bigarray.char Bigarray.c_layout true (page_size * (pow2 order))
+        with e ->
+            Unix.close fd;
+            raise e
+
+    let length t = Bigarray.Array1.dim t
+
+    let to_pages t =
+        (* XXX: move to shared library *)
+        assert(length t mod page_size = 0);
+        let rec loop off acc =
+            if off < (length t)
+            then loop (off + page_size) (Bigarray.Array1.sub t off page_size :: acc)
+            else acc in
+        List.rev (loop 0 [])
+
+end
+
+module type GNTTAB = sig
+    type handle
+
+    type r
+    type h
+    type perm = RO | RW
+
+    val get_n : int -> r list Lwt.t
+    val to_string : r -> string
+    val to_int32 : r -> int32
+
+    val grant_access : domid:int -> perm:perm -> r -> Io_page.t -> unit
+    val with_ref: (r -> 'a Lwt.t) -> 'a Lwt.t
+    val with_grant : domid:int -> perm:perm -> r -> Io_page.t -> (unit -> 'a Lwt.t) -> 'a Lwt.t
+    val with_grants : domid:int -> perm:perm -> r list -> Io_page.t list -> (unit -> 'a Lwt.t) -> 'a Lwt.t
+
+end
+	
+module Gnttab = struct
+
+    type r = int
+    type h = unit
+    type handle = unit
+    type perm = RO | RW
+
+    let next_ref = make_counter ()
+
+    let get_n n =
+        let rec loop = function
+        | 0 -> []
+        | n -> next_ref () :: (loop (n - 1)) in
+        return (loop n)
+
+    let to_string = string_of_int
+    let to_int32 = Int32.of_int
+
+    let grant_access ~domid ~perm gnt page = failwith "grant_access"
+    let with_ref r = failwith "with_ref"
+    let with_grant ~domid ~perm gnt page = failwith "with_grant"
+    let with_grants ~domid ~perm gnts pages = failwith "with_grants"
+end
+
+
+module type EVENTCHN = sig
     type t
 
     type handle
@@ -40,11 +116,10 @@ module EVENTCHN = sig
     val bind_interdomain: handle -> int -> int -> t 
 
 end
-*)
 
 module Eventchn = struct
 
-    type t = int option * Lwt_unix.file_descr
+    type t = int option * Unix.file_descr
 
     let to_int = function
       | None, _ -> -1
@@ -62,7 +137,7 @@ module Eventchn = struct
         h.ports <- List.filter (fun t' -> t' <> t) h.ports
 
     let notify _ (_, fd) =
-        let th = Lwt_unix.write fd "!" 0 1 in
+        let _ = Unix.write fd "!" 0 1 in
         ()
 
     let path_of_port = Printf.sprintf "eventchn.%d"
@@ -76,26 +151,25 @@ module Eventchn = struct
 
     let bind_interdomain h domid port =
         let path = path_of_port port in
-        let sock = Lwt_unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
-        lwt () = Lwt_unix.connect sock (Unix.ADDR_UNIX path) in
+        let sock = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
+        let () = Unix.connect sock (Unix.ADDR_UNIX path) in
         h.ports <- (None, sock) :: h.ports;
-        return (None, sock)
+        (None, sock)
 
-    let bind_unbound_port h domid =
+    let alloc_unbound_port h domid =
         let port = free_port () in
         let path = path_of_port port in
-        let sock = Lwt_unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
-        Lwt_unix.bind sock (Unix.ADDR_UNIX path);
-        Lwt_unix.listen sock 5;
-        lwt (fd, _) = Lwt_unix.accept sock in
+        let sock = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
+        Unix.bind sock (Unix.ADDR_UNIX path);
+        Unix.listen sock 5;
+        let (fd, _) = Unix.accept sock in
         h.ports <- (Some port, fd) :: h.ports;
-        return (Some port, fd)
+        (Some port, fd)
 
-    let pending h =
-        let wait t =
-            let buf = String.create 1 in
-            lwt _ = Lwt_unix.read (snd t) buf 0 1 in
-            return t in
-        Lwt.pick (List.map wait h.ports)
+    let pending h = failwith "not implemented"
 end
 
+
+module Io_page = (Io_page : IO_PAGE)
+module Gnttab = (Gnttab : GNTTAB)
+module Eventchn = (Eventchn : EVENTCHN)
