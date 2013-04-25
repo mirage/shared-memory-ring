@@ -16,7 +16,9 @@
 open Lwt
 
 module type IO_PAGE = sig
-    type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+    type t
+
+    val to_cstruct : t -> (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
     val get_order : int -> t
     val to_pages : t -> t list
 end
@@ -29,7 +31,18 @@ let make_counter () =
         result
 
 module Io_page = struct
-    type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+    type file = {
+        address: int; (* shared identifier which maps onto filenames *)
+        offset: int;  (* offset of this Io_page within the file *)
+        length: int;  (* length of this Io_page within the file *)
+    }
+
+    type t = {
+        buf: (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t;
+        file: file;
+    }
+
+    let to_cstruct t = t.buf
 
     let page_size = 4096
 
@@ -39,22 +52,31 @@ module Io_page = struct
         let rec pow2 = function
           | 0 -> 1
           | n -> n * (pow2 (n - 1)) in
-        let name = Printf.sprintf "page.%d" (next_address ()) in
+        let address = next_address () in
+        let length = page_size * (pow2 order) in
+        let name = Printf.sprintf "page.%d" address in
         let fd = Unix.openfile name [ Unix.O_CREAT; Unix.O_TRUNC; Unix.O_RDWR ] 0o0644 in
         try
-            Bigarray.Array1.map_file fd Bigarray.char Bigarray.c_layout true (page_size * (pow2 order))
+            let buf = Bigarray.Array1.map_file fd Bigarray.char Bigarray.c_layout true length in
+            let offset = 0 in
+            let file = { address; offset; length } in
+            { buf; file }
         with e ->
             Unix.close fd;
             raise e
 
-    let length t = Bigarray.Array1.dim t
-
     let to_pages t =
         (* XXX: move to shared library *)
-        assert(length t mod page_size = 0);
-        let rec loop off acc =
-            if off < (length t)
-            then loop (off + page_size) (Bigarray.Array1.sub t off page_size :: acc)
+        assert(t.file.length mod page_size = 0);
+        let rec loop offset acc =
+            if offset < t.file.length
+            then
+                let length = page_size in
+                let address = t.file.address in
+                let buf = Bigarray.Array1.sub t.buf offset length in
+                let file = { address; offset; length } in
+                let t = { buf; file } in
+                loop (offset + length) (t :: acc)
             else acc in
         List.rev (loop 0 [])
 
@@ -170,6 +192,6 @@ module Eventchn = struct
 end
 
 
-module Io_page = (Io_page : IO_PAGE)
-module Gnttab = (Gnttab : GNTTAB)
-module Eventchn = (Eventchn : EVENTCHN)
+module Io_page' = (Io_page : IO_PAGE)
+module Gnttab' = (Gnttab : GNTTAB)
+module Eventchn'  = (Eventchn : EVENTCHN)
