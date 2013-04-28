@@ -74,6 +74,9 @@ let of_buf ~buf ~idx_size ~name =
   let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
   { name; buf; idx_size; nr_ents; header_size }
 
+let to_summary_string t =
+  Printf.sprintf "ring %s header_size = %d; index slot size = %d; number of entries = %d" t.name t.header_size t.idx_size t.nr_ents
+
 let sring_rsp_prod sring = Int32.to_int (get_ring_hdr_rsp_prod sring.buf)
 let sring_req_prod sring = Int32.to_int (get_ring_hdr_req_prod sring.buf)
 let sring_req_event sring =
