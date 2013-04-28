@@ -33,14 +33,15 @@ module Front = struct
     let waiters = Lwt_sequence.create () in
     { ring; wakers; waiters; string_of_id }
 
-  let wait_for_free_slot t =
+  let rec get_free_slot t =
     if Ring.Rpc.Front.get_free_requests t.ring > 0 then
-      return ()
+      return (Ring.Rpc.Front.next_req_id t.ring)
     else begin
       let th, u = Lwt.task () in
       let node = Lwt_sequence.add_r u t.waiters in
       Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-      th
+      lwt () = th in
+      get_free_slot t
     end 
 
   let poll t respfn =
@@ -60,8 +61,7 @@ module Front = struct
     |Some u -> Lwt.wakeup u ()
 
   let write t reqfn =
-    lwt () = wait_for_free_slot t in
-    let slot_id = Ring.Rpc.Front.next_req_id t.ring in
+    lwt slot_id = get_free_slot t in
     let slot = Ring.Rpc.Front.slot t.ring slot_id in
     let th, u = Lwt.task () in
     let id = reqfn slot in
