@@ -51,7 +51,8 @@ module Front = struct
          Hashtbl.remove t.wakers id;
          Lwt.wakeup u resp
        with Not_found ->
-         printf "RX: ack (id = %s) wakener not found\n%!" (t.string_of_id id)
+         printf "RX: ack (id = %s) wakener not found\n" (t.string_of_id id);
+         printf "    valid ids = [ %s ]\n%!" (String.concat "; " (List.map t.string_of_id (Hashtbl.fold (fun k _ acc -> k :: acc) t.wakers [])));
     );
     (* Check for any sleepers waiting for free space *)
     match Lwt_sequence.take_opt_l t.waiters with
