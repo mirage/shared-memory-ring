@@ -62,6 +62,7 @@ Executable client
   CompiledObject:     best
   Path:               examples
   MainIs:             client.ml
+  Build$:             flag(tests)
   Custom:             true
   Install:            false
   BuildDepends:       lwt, lwt.unix, shared-memory-ring, shared-memory-ring.lwt
