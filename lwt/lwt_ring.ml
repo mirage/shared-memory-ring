@@ -25,12 +25,13 @@ module Front = struct
     ring: ('a, 'b) Ring.Rpc.Front.t;
     wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
     waiters: unit Lwt.u Lwt_sequence.t;
+    string_of_id: 'b -> string;
   }
 
-  let init ring =
+  let init string_of_id ring =
     let wakers = Hashtbl.create 7 in
     let waiters = Lwt_sequence.create () in
-    { ring; wakers; waiters }
+    { ring; wakers; waiters; string_of_id }
 
   let wait_for_free_slot t =
     if Ring.Rpc.Front.get_free_requests t.ring > 0 then
@@ -50,7 +51,7 @@ module Front = struct
          Hashtbl.remove t.wakers id;
          Lwt.wakeup u resp
        with Not_found ->
-         printf "RX: ack id wakener not found\n%!"
+         printf "RX: ack (id = %s) wakener not found\n%!" (t.string_of_id id)
     );
     (* Check for any sleepers waiting for free space *)
     match Lwt_sequence.take_opt_l t.waiters with
@@ -98,10 +99,11 @@ end
 module Back = struct
   type ('a, 'b) t = {
     ring: ('a, 'b) Ring.Rpc.Back.t;
+    string_of_id: 'b -> string;
   }
 
-  let init ring =
-    { ring }
+  let init string_of_id ring =
+    { ring; string_of_id }
 
   let push_response t notifyfn rspfn =
 	  let slot_id = Ring.Rpc.Back.next_res_id t.ring in
