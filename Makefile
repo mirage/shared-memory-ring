@@ -7,7 +7,7 @@ J=4
 export OCAMLRUNPARAM=b
 
 TESTS ?= --enable-tests
-ifneq "$(MIRAGE_OS)" ""
+ifeq "$(MIRAGE_OS)" "xen"
 TESTS := --disable-tests
 endif
 

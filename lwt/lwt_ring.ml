@@ -25,21 +25,23 @@ module Front = struct
     ring: ('a, 'b) Ring.Rpc.Front.t;
     wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
     waiters: unit Lwt.u Lwt_sequence.t;
+    string_of_id: 'b -> string;
   }
 
-  let init ring =
+  let init string_of_id ring =
     let wakers = Hashtbl.create 7 in
     let waiters = Lwt_sequence.create () in
-    { ring; wakers; waiters }
+    { ring; wakers; waiters; string_of_id }
 
-  let wait_for_free_slot t =
+  let rec get_free_slot t =
     if Ring.Rpc.Front.get_free_requests t.ring > 0 then
-      return ()
+      return (Ring.Rpc.Front.next_req_id t.ring)
     else begin
       let th, u = Lwt.task () in
       let node = Lwt_sequence.add_r u t.waiters in
       Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-      th
+      lwt () = th in
+      get_free_slot t
     end 
 
   let poll t respfn =
@@ -50,7 +52,8 @@ module Front = struct
          Hashtbl.remove t.wakers id;
          Lwt.wakeup u resp
        with Not_found ->
-         printf "RX: ack id wakener not found\n%!"
+         printf "RX: ack (id = %s) wakener not found\n" (t.string_of_id id);
+         printf "    valid ids = [ %s ]\n%!" (String.concat "; " (List.map t.string_of_id (Hashtbl.fold (fun k _ acc -> k :: acc) t.wakers [])));
     );
     (* Check for any sleepers waiting for free space *)
     match Lwt_sequence.take_opt_l t.waiters with
@@ -58,8 +61,7 @@ module Front = struct
     |Some u -> Lwt.wakeup u ()
 
   let write t reqfn =
-    lwt () = wait_for_free_slot t in
-    let slot_id = Ring.Rpc.Front.next_req_id t.ring in
+    lwt slot_id = get_free_slot t in
     let slot = Ring.Rpc.Front.slot t.ring slot_id in
     let th, u = Lwt.task () in
     let id = reqfn slot in
@@ -98,10 +100,11 @@ end
 module Back = struct
   type ('a, 'b) t = {
     ring: ('a, 'b) Ring.Rpc.Back.t;
+    string_of_id: 'b -> string;
   }
 
-  let init ring =
-    { ring }
+  let init string_of_id ring =
+    { ring; string_of_id }
 
   let push_response t notifyfn rspfn =
 	  let slot_id = Ring.Rpc.Back.next_res_id t.ring in

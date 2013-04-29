@@ -74,6 +74,9 @@ let of_buf ~buf ~idx_size ~name =
   let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
   { name; buf; idx_size; nr_ents; header_size }
 
+let to_summary_string t =
+  Printf.sprintf "ring %s header_size = %d; index slot size = %d; number of entries = %d" t.name t.header_size t.idx_size t.nr_ents
+
 let sring_rsp_prod sring = Int32.to_int (get_ring_hdr_rsp_prod sring.buf)
 let sring_req_prod sring = Int32.to_int (get_ring_hdr_req_prod sring.buf)
 let sring_req_event sring =
@@ -283,8 +286,13 @@ module Pipe(RW: RW) = struct
 		let cons = Int32.to_int (RW.get_ring_output_cons t) in
 		let prod = Int32.to_int (RW.get_ring_output_prod t) in
 		memory_barrier ();
-		let cons' = cons mod output_length
-		and prod' = prod mod output_length in
+		(* 0 <= cons', prod' <= output_length *)
+		let cons' =
+			let x = cons mod output_length in
+			if x < 0 then x + output_length else x
+		and prod' =
+			let x = prod mod output_length in
+			if x < 0 then x + output_length else x in
 		let free_space =
 			if prod - cons >= output_length
 			then 0
@@ -304,8 +312,12 @@ module Pipe(RW: RW) = struct
 		let cons = Int32.to_int (RW.get_ring_input_cons t) in
 		let prod = Int32.to_int (RW.get_ring_input_prod t) in
 		memory_barrier ();
-		let cons' = cons mod input_length
-		and prod' = prod mod input_length in
+		let cons' =
+			let x = cons mod input_length in
+			if x < 0 then x + input_length else x
+		and prod' =
+			let x = prod mod input_length in
+			if x < 0 then x + input_length else x in
 		let data_available =
 			if prod = cons
 			then 0
@@ -318,6 +330,15 @@ module Pipe(RW: RW) = struct
 		memory_barrier (); (* XXX: not a write_memory_barrier? *)
 		RW.set_ring_input_cons t (Int32.of_int (cons + can_read));
 		can_read
+
+	let rec repeat f from buf ofs len =
+		let n = f from buf ofs len in
+		if n < len && n > 0
+		then n + (repeat f from buf (ofs + n) (len - n))
+		else n
+
+	let unsafe_read = repeat unsafe_read
+	let unsafe_write = repeat unsafe_write
 end
 
 module type Bidirectional_byte_stream = sig
