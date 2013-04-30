@@ -58,6 +58,15 @@ Executable lwt_test
   Install:            false
   BuildDepends:       lwt, lwt.unix, shared-memory-ring, shared-memory-ring.lwt, oUnit
 
+Executable client
+  CompiledObject:     best
+  Path:               examples
+  MainIs:             client.ml
+  Build$:             flag(tests)
+  Custom:             true
+  Install:            false
+  BuildDepends:       lwt, lwt.unix, shared-memory-ring, shared-memory-ring.lwt
+
 Test ring_test
   Run$:               flag(tests)
   Command:            $ring_test

@@ -30,7 +30,7 @@ module Front : sig
     * @param ring Shared ring frontend to attach to
     * @return stateful ring client
     *)
-  val init : ('a, 'b) Ring.Rpc.Front.t -> ('a,'b) t
+  val init : ('b -> string) -> ('a, 'b) Ring.Rpc.Front.t -> ('a,'b) t
 
   (** Block until a ring slot is free, write the request and return the response thread *)
   val write : ('a, 'b) t -> (buf -> 'b) -> 'a Lwt.t Lwt.t
@@ -72,7 +72,7 @@ module Back : sig
     * @param ring Shared ring frontend to attach to
     * @return stateful ring server
     *)
-  val init : ('a, 'b) Ring.Rpc.Back.t -> ('a,'b) t
+  val init : ('b -> string) -> ('a, 'b) Ring.Rpc.Back.t -> ('a,'b) t
 
   (** [push_response t notifyfn fn] finds a free slot and applies it to [fn],
       signalling the client via [notifyfn] that a response is ready. *)
