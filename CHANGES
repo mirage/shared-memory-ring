@@ -1,3 +1,7 @@
+0.3.2 (2013-04-30):
+* Fix a ring corruption issue which could lead to dropped network packets
+  or stalled disks
+
 0.3.1 (2013-03-15):
 * Fix unsigned comparisons in console/xenstore ring handling
 
