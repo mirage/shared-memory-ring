@@ -66,6 +66,9 @@ module Front : sig
   (** Advance the request producer and return the latest slot id *)
   val next_req_id: ('a,'b) t -> int
 
+  (** Advance the request producer by 'n' and return the first slot id *)
+  val allocate_slots: ('a, 'b) t -> int -> int
+
   (** Read all the outstanding responses from the remote domain,
     * calling {[fn]} on them, and updating the response
     * consumer pointer after each individual slot has been processed.

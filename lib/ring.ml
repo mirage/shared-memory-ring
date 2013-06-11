@@ -152,6 +152,13 @@ module Front = struct
       has_unconsumed_responses t
     end 
 
+  let allocate_slots t n =
+    (* check we aren't about to override in-use slots *)
+    assert (get_free_requests t >= n);
+    let first = t.req_prod_pvt in
+    t.req_prod_pvt <- t.req_prod_pvt + n;
+    first
+
   let next_req_id t =
     let s = t.req_prod_pvt in
     t.req_prod_pvt <- t.req_prod_pvt + 1;
