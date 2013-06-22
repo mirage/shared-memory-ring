@@ -6,11 +6,26 @@
 #ifndef _BARRIER_H_
 #define _BARRIER_H_
 
-/* This is a barrier for the compiler only, NOT the processor! */
-#define barrier() __asm__ __volatile__("": : :"memory")
+#define xen_barrier() asm volatile ( "" : : : "memory")
 
-#define mb()    __asm__ __volatile__ ("mfence":::"memory")
-#define rmb()   __asm__ __volatile__ ("lfence":::"memory")
-#define wmb()	__asm__ __volatile__ ("sfence" ::: "memory") /* From CONFIG_UNORDERED_IO (linux) */
+#if defined(__i386__)
+#define xen_mb()  asm volatile ( "lock; addl $0,0(%%esp)" : : : "memory" )
+#define xen_rmb() xen_barrier()
+#define xen_wmb() xen_barrier()
+#elif defined(__x86_64__)
+#define xen_mb()  asm volatile ( "mfence" : : : "memory")
+#define xen_rmb() xen_barrier()
+#define xen_wmb() xen_barrier()
+#elif defined(__arm__)
+#define xen_mb()   asm volatile ("dmb" : : : "memory")
+#define xen_rmb()  asm volatile ("dmb" : : : "memory")
+#define xen_wmb()  asm volatile ("dmb" : : : "memory")
+#elif defined(__aarch64__)
+#define xen_mb()   asm volatile ("dmb sy" : : : "memory")
+#define xen_rmb()  asm volatile ("dmb sy" : : : "memory")
+#define xen_wmb()  asm volatile ("dmb sy" : : : "memory")
+#else
+#error "Define barriers"
+#endif
 
 #endif /* _BARRIER_H_ */
