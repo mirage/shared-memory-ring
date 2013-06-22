@@ -26,9 +26,6 @@
 #include "xenstore.h"
 #include "barrier.h"
 
-#define xen_mb() mb()
-#define xen_wmb() wmb()
-
 typedef unsigned int RING_IDX; /* from ring.h */
 
 extern void *memset(void *s, int c, size_t n);
@@ -55,11 +52,11 @@ caml_##xname##_ring_write(value v_ptr, value v_str, value v_len) \
    XENCONS_RING_IDX cons, prod; \
    cons = intf->xout##_cons; \
    prod = intf->xout##_prod; \
-   mb(); \
+   xen_mb(); \
    /* BUG_ON((prod - cons) > sizeof(intf->xout));*/				\
    while ((sent < len) && ((prod - cons) < sizeof(intf->xout))) \
      intf->xout[MASK_XENCONS_IDX(prod++, intf->xout)] = data[sent++]; \
-   wmb(); \
+   xen_wmb(); \
    intf->xout##_prod = prod; \
    return Val_int(sent); \
 } \
@@ -72,11 +69,11 @@ caml_##xname##_ring_read(value v_ptr, value v_str, value v_len) \
    XENCONS_RING_IDX cons, prod; \
    cons = intf->xin##_cons; \
    prod = intf->xin##_prod; \
-   mb(); \
+   xen_mb(); \
    /* BUG_ON((prod - cons) > sizeof(intf->xin));*/	\
    while (cons != prod && pos < len) \
      data[pos++] = intf->xin[MASK_XENCONS_IDX(cons++, intf->xin)]; \
-   mb(); \
+   xen_mb(); \
    intf->xin##_cons = cons; \
    return Val_int(pos); \
 }
