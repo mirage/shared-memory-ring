@@ -15,123 +15,117 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Shared ring handling to communicate with other Xen domains *)
+(** Shared ring handling to communicate with other Xen domains. *)
 
 type buf = Cstruct.t
 
 module Rpc : sig
 
-(** Abstract type for a shared ring *)
 type sring
+(** Abstract type for a shared ring. *)
 
-(** Given a Cstruct.t [buf] comprising pre-allocated contiguous
-    I/O pages, return an [sring] where the maximum size of each
-    request/response is {[idx_size]}.
-    @param buf pre-allocated contiguous I/O pages
-    @param idx_size maximum size of each slot, in bytes
-    @param name Name of the shared ring, for pretty-printing
-    @return shared ring value
-  *)
 val of_buf : buf:Cstruct.t -> idx_size:int -> name:string -> sring
+(** [of_buf ~buf ~idx_size ~name] is an [sring] constructed from
+    [buf], of maximum request/response size [idx_size]. [name] is used for
+    pretty-printing. [buf] should be a Cstruct.t comprising pre-allocated
+    contiguous I/O pages. *)
 
-(** Printable single-line summary of the ring *)
 val to_summary_string : sring -> string
+(** [to_summary_string ring] is a printable single-line summary of the
+    ring. *)
 
-(** The front-end of the shared ring, which issues requests and reads
-    responses from the remote domain. 
-  *)
+(** The front-end of the shared ring, which reads requests and reads
+    responses from the remote domain. *)
 module Front : sig
 
-  (** 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
   type ('a,'b) t
+  (** Type of a frontend. 'a is the response type, and 'b is the
+      request id type (e.g. int or int64). *)
 
-  (** Given a shared ring, initialise it for this front-end module
-    * @param sring Shared ring to attach this front end to
-    * @return front end ring value
-    *)
   val init : sring:sring -> ('a,'b) t
+  (** [init ~sring] is an initialized frontend attached to shared ring
+      [sring]. *)
 
-  (** Retrieve the request/response slot at the specified index as
-    * an Cstruct.t.
-    * @param idx Index to retrieve, should be less than nr_ents
-    *)
   val slot : ('a,'b) t -> int -> Cstruct.t
+  (** [slot frontend idx] retrieves the request/response slot at [idx]
+      as an Cstruct.t. [idx] should be less than [nr_ents]. *)
 
-  (** Retrieve number of slots in the shared ring *)
   val nr_ents : ('a,'b) t -> int
+  (** [nr_ents frontend] is the number of slots in the underlying
+      shared ring. *)
 
-  (** Retrieve the number of free request slots remaining *)
   val get_free_requests : ('a,'b) t -> int
+  (** [get_free_requests frontend] is the number of free request slots
+      remaining in [frontend]. *)
 
-  (** Advance the request producer and return the latest slot id *)
   val next_req_id: ('a,'b) t -> int
+  (** [next_req_id frontend] advances the ring request producer and
+      returns the latest slot id. *)
 
-  (** Read all the outstanding responses from the remote domain,
-    * calling {[fn]} on them, and updating the response
-    * consumer pointer after each individual slot has been processed.
-    *
-    * This is the low-level function which is only used if some
-    * sort of batching of requests is being performed, and normally
-    * you should use the flow-controlled {[poll]} that will ack
-    * the responses and wake up any sleeping threads that were
-    * waiting for that particular response.
-    *)
   val ack_responses : ('a,'b) t -> (Cstruct.t -> unit) -> unit
+  (** [ack_response frontend f] reads all the outstanding responses
+      from the remote domain, calling [f] on them, and updating the
+      response consumer pointer after each individual slot has been
+      processed.
 
-  (** Update the shared request producer *)
+      This is the low-level function which is only used if some sort
+      of batching of requests is being performed, and normally you
+      should use the flow-controlled [poll] that will ack the
+      responses and wake up any sleeping threads that were waiting for
+      that particular response. *)
+
   val push_requests : ('a,'b) t -> unit
+  (** [push_requests frontend] updates the shared request producer. *)
 
-  (** Update the shared request producer, and also check to see
-      if an event notification is required to wake up the remote
-      domain.
-      @return true if an event channel notification is required
-    *)
   val push_requests_and_check_notify : ('a,'b) t -> bool
+  (** [push_requests_and_check_notify frontend] updates the shared
+      request producer, and returns [true] if an event notification is
+      required to wake up the remote domain. *)
 end
 
+(** The back-end of the shared ring, which reads requests and writes
+    responses to the remote domain. *)
 module Back : sig
-  (** 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
+
   type ('a,'b) t
+  (** Type of a backend. 'a is the response type, and 'b is the
+      request id type (e.g. int or int64). *)
 
-  (** Given a shared ring, initialise it for this backend module
-    * @param sring Shared ring to attach this backend to
-    * @return backend ring value
-    *)
   val init : sring:sring -> ('a,'b) t
+  (** [init ~sring] is an initialized backend attached to shared ring
+      [sring]. *)
 
-  (** Retrieve the request/response slot at the specified index as
-    * a Io_page.
-    * @param idx Index to retrieve, should be less than nr_ents
-    *)
   val slot : ('a,'b) t -> int -> Cstruct.t
+  (** [slot backend idx] retrieves the request/response slot at [idx]
+      as an Cstruct.t. [idx] should be less than [nr_ents]. *)
 
-  (** Retrieve number of slots in the shared ring *)
   val nr_ents : ('a,'b) t -> int
+  (** [nr_ents backend] is the number of slots in the underlying
+      shared ring. *)
 
-  (** Advance the response producer and return the latest slot id *)
   val next_res_id: ('a,'b) t -> int
+  (** [next_res_id backend] advances the response producer and return the
+      latest slot id. *)
 
-  (** Update the shared response producer *)
   val push_responses : ('a,'b) t -> unit
+  (** [push_responses backend] updates the shared response producer. *)
 
-  (** Update the shared response producer, and also check to see
-      if an event notification is required to wake up the remote
-      domain.
-      @return true if an event channel notification is required
-    *)
   val push_responses_and_check_notify : ('a,'b) t -> bool
+  (** [push_responses_and_check_notify backend] updates the shared
+      response producer, and returns [true] if an event notification
+      is required to wake up the remote domain. *)
 
-  (** returns true if there are outstanding requests on the ring
-      which we should immediately process without waiting for an
-      event notification. *)
   val more_to_do : ('a, 'b) t -> bool
+  (** [more_to_do backend] returns [true] if there are outstanding
+      requests on the ring which we should immediately process without
+      waiting for an event notification. *)
 
-  (** [ack_requests t fn] applies [fn slot] to each [slot] containing
-      a new request *)
   val ack_requests : ('a, 'b) t -> (Cstruct.t -> unit) -> unit
+  (** [ack_requests t fn] applies [fn slot] to each [slot] containing
+      a new request. *)
 
-  (** pretty-print ring metadata *)
   val to_string : ('a, 'b) t -> string
+  (** [to_string backend] pretty-prints the ring metadata. *)
 end
 
 end
