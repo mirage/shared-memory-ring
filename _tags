@@ -97,7 +97,9 @@
 <examples/client.{native,byte}>: custom
 # OASIS_STOP
 true: annot
-<*/*>: syntax_camlp4o
+<*/*.ml{,i}>: syntax_camlp4o
 <lib/ring>: pkg_cstruct.syntax
 <lwt/lwt_ring>: pkg_lwt.syntax
 <lwt_test/lwt_test>: pkg_lwt.syntax
+<lib>: include
+<lwt>: include
