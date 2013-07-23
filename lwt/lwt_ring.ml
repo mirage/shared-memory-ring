@@ -45,20 +45,24 @@ module Front = struct
     end 
 
   let poll t respfn =
+    let slots_emptied = ref 0 in
     Ring.Rpc.Front.ack_responses t.ring (fun slot ->
       let id, resp = respfn slot in
       try
          let u = Hashtbl.find t.wakers id in
          Hashtbl.remove t.wakers id;
-         Lwt.wakeup_later u resp
+         Lwt.wakeup_later u resp;
+         incr slots_emptied
        with Not_found ->
          printf "RX: ack (id = %s) wakener not found\n" (t.string_of_id id);
          printf "    valid ids = [ %s ]\n%!" (String.concat "; " (List.map t.string_of_id (Hashtbl.fold (fun k _ acc -> k :: acc) t.wakers [])));
     );
     (* Check for any sleepers waiting for free space *)
-    match Lwt_sequence.take_opt_l t.waiters with
-    |None -> ()
-    |Some u -> Lwt.wakeup_later u ()
+    try
+      for i = 0 to !slots_emptied - 1 do
+        Lwt.wakeup_later (Lwt_sequence.take_l t.waiters) ();
+      done
+    with Lwt_sequence.Empty -> ()
 
   let write t reqfn =
     lwt slot_id = get_free_slot t in
