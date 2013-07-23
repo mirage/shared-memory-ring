@@ -50,7 +50,7 @@ module Front = struct
       try
          let u = Hashtbl.find t.wakers id in
          Hashtbl.remove t.wakers id;
-         Lwt.wakeup u resp
+         Lwt.wakeup_later u resp
        with Not_found ->
          printf "RX: ack (id = %s) wakener not found\n" (t.string_of_id id);
          printf "    valid ids = [ %s ]\n%!" (String.concat "; " (List.map t.string_of_id (Hashtbl.fold (fun k _ acc -> k :: acc) t.wakers [])));
@@ -58,7 +58,7 @@ module Front = struct
     (* Check for any sleepers waiting for free space *)
     match Lwt_sequence.take_opt_l t.waiters with
     |None -> ()
-    |Some u -> Lwt.wakeup u ()
+    |Some u -> Lwt.wakeup_later u ()
 
   let write t reqfn =
     lwt slot_id = get_free_slot t in
