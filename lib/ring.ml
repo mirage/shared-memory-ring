@@ -49,6 +49,9 @@ cstruct ring_hdr {
 } as little_endian
 
 let initialise ring =
+  for i = 0 to Cstruct.len ring - 1 do
+    Cstruct.set_uint8 ring i 0
+  done;
   (* initialise the *_event fields to 1, and the rest to 0 *)
   set_ring_hdr_req_prod ring 0l;
   set_ring_hdr_req_event ring 1l;
@@ -121,6 +124,8 @@ module Front = struct
   let init ~sring =
     let req_prod_pvt = 0 in
     let rsp_cons = 0 in
+    (* The frontend has to initialise the ring contents *)
+    initialise sring.buf;
     { req_prod_pvt; rsp_cons; sring }
 
   let slot t idx = slot t.sring idx
