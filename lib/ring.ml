@@ -27,6 +27,9 @@ external xen_mb:  unit -> unit = "caml_xen_mb"  "noalloc"
 external xen_wmb: unit -> unit = "caml_xen_wmb" "noalloc"
 external xen_rmb: unit -> unit = "caml_xen_rmb" "noalloc"
 
+external load_uint32: Cstruct.t -> int -> int = "caml_ba_load_uint32"
+external save_uint32: Cstruct.t -> int -> int -> unit = "caml_ba_save_uint32"
+
 module Rpc = struct
 
 let rec pow2 = function
@@ -41,7 +44,7 @@ let rec pow2 = function
     uint8_t  pad[47];
   };
 *)
-
+(*
 cstruct ring_hdr {
   uint32_t req_prod;
   uint32_t req_event;
@@ -49,17 +52,21 @@ cstruct ring_hdr {
   uint32_t rsp_event;
   uint64_t stuff
 } as little_endian
+*)
+let _req_prod  = 0
+let _req_event = 4
+let _rsp_prod  = 8
+let _rsp_event = 12
 
 let initialise ring =
   for i = 0 to Cstruct.len ring - 1 do
     Cstruct.set_uint8 ring i 0
   done;
   (* initialise the *_event fields to 1, and the rest to 0 *)
-  set_ring_hdr_req_prod ring 0l;
-  set_ring_hdr_req_event ring 1l;
-  set_ring_hdr_rsp_prod ring 0l;
-  set_ring_hdr_rsp_event ring 1l;
-  set_ring_hdr_stuff ring 0L
+  save_uint32 ring _req_prod  0;
+  save_uint32 ring _req_event 1;
+  save_uint32 ring _rsp_prod  0;
+  save_uint32 ring _rsp_event 1;
 
 type sring = {
   buf: Cstruct.t;         (* Overall I/O buffer *)
@@ -84,31 +91,31 @@ let to_summary_string t =
 
 let sring_rsp_prod sring =
         xen_mb ();
-        Int32.to_int (get_ring_hdr_rsp_prod sring.buf)
+	load_uint32 sring.buf _rsp_prod
 let sring_req_prod sring =
 	xen_mb ();
-	Int32.to_int (get_ring_hdr_req_prod sring.buf)
+        load_uint32 sring.buf _req_prod
 let sring_req_event sring =
 	xen_mb ();
-	Int32.to_int (get_ring_hdr_req_event sring.buf)
+	load_uint32 sring.buf _req_event
 let sring_rsp_event sring =
 	xen_mb ();
-	Int32.to_int (get_ring_hdr_rsp_event sring.buf)
+	load_uint32 sring.buf _rsp_event
 
 let sring_push_requests sring req_prod =
 	xen_mb (); (* ensure requests are seen before the index is updated *)
-	set_ring_hdr_req_prod sring.buf (Int32.of_int req_prod)
+	save_uint32 sring.buf _req_prod req_prod
 
 let sring_push_responses sring rsp_prod =
 	xen_mb (); (* ensure requests are seen before the index is updated *)
-	set_ring_hdr_rsp_prod sring.buf (Int32.of_int rsp_prod)
+	save_uint32 sring.buf _rsp_prod rsp_prod
 
-let sring_set_rsp_event sring rsp_cons =
-	set_ring_hdr_rsp_event sring.buf (Int32.of_int rsp_cons);
+let sring_set_rsp_event sring rsp_event =
+	save_uint32 sring.buf _rsp_event rsp_event;
 	xen_mb ()
 
-let sring_set_req_event sring req_cons =
-	set_ring_hdr_req_event sring.buf (Int32.of_int req_cons);
+let sring_set_req_event sring req_event =
+	save_uint32 sring.buf _req_event req_event;
 	xen_mb ()
 
 let nr_ents sring = sring.nr_ents
