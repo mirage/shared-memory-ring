@@ -214,14 +214,6 @@ module Back = struct
     push_responses t;
     (new_idx - (sring_rsp_event t.sring)) < (new_idx - old_idx)
 
-  let check_for_requests t =
-    if has_unconsumed_requests t then
-      true
-    else begin
-      sring_set_req_event t.sring (t.req_cons + 1);
-      has_unconsumed_requests t
-    end
-
   let next_res_id t =
     let s = t.rsp_prod_pvt in
     t.rsp_prod_pvt <- t.rsp_prod_pvt + 1;
@@ -230,18 +222,12 @@ module Back = struct
   let next_slot t =
       slot t (next_res_id t)
 
-  let final_check_for_requests t =
+  let more_to_do t =
 	  has_unconsumed_requests t ||
 		  begin
 			  sring_set_req_event t.sring (t.req_cons + 1);
 			  has_unconsumed_requests t
 		  end
-
-  let more_to_do t =
-	  if t.rsp_prod_pvt = t.req_cons then
-		  final_check_for_requests t
-	  else
-		  has_unconsumed_requests t
 
   let to_string t =
 	  let req_prod = sring_req_prod t.sring in
@@ -258,7 +244,7 @@ module Back = struct
       t.req_cons <- t.req_cons + 1;
       fn slot;
     done;
-    if check_for_requests t then ack_requests t fn
+    if has_unconsumed_requests t then ack_requests t fn
 end
 end
 
