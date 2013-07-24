@@ -23,7 +23,9 @@ let sub t off len = Cstruct.sub t off len
 
 let length t = Cstruct.len t
 
-external memory_barrier: unit -> unit = "caml_memory_barrier" "noalloc"
+external xen_mb:  unit -> unit = "caml_xen_mb"  "noalloc"
+external xen_wmb: unit -> unit = "caml_xen_wmb" "noalloc"
+external xen_rmb: unit -> unit = "caml_xen_rmb" "noalloc"
 
 module Rpc = struct
 
@@ -83,27 +85,27 @@ let to_summary_string t =
 let sring_rsp_prod sring = Int32.to_int (get_ring_hdr_rsp_prod sring.buf)
 let sring_req_prod sring = Int32.to_int (get_ring_hdr_req_prod sring.buf)
 let sring_req_event sring =
-	memory_barrier ();
+	xen_mb ();
 	Int32.to_int (get_ring_hdr_req_event sring.buf)
 let sring_rsp_event sring =
-	memory_barrier ();
+	xen_mb ();
 	Int32.to_int (get_ring_hdr_rsp_event sring.buf)
 
 let sring_push_requests sring req_prod =
-	memory_barrier (); (* ensure requests are seen before the index is updated *)
+	xen_wmb (); (* ensure requests are seen before the index is updated *)
 	set_ring_hdr_req_prod sring.buf (Int32.of_int req_prod)
 
 let sring_push_responses sring rsp_prod =
-	memory_barrier (); (* ensure requests are seen before the index is updated *)
+	xen_wmb (); (* ensure requests are seen before the index is updated *)
 	set_ring_hdr_rsp_prod sring.buf (Int32.of_int rsp_prod)
 
 let sring_set_rsp_event sring rsp_cons =
 	set_ring_hdr_rsp_event sring.buf (Int32.of_int rsp_cons);
-	memory_barrier ()
+	xen_mb ()
 
 let sring_set_req_event sring req_cons =
 	set_ring_hdr_req_event sring.buf (Int32.of_int req_cons);
-	memory_barrier ()
+	xen_mb ()
 
 let nr_ents sring = sring.nr_ents
 
@@ -290,7 +292,7 @@ module Pipe(RW: RW) = struct
 		(* Remember: the producer and consumer indices can be >> output_length *)
 		let cons = Int32.to_int (RW.get_ring_output_cons t) in
 		let prod = Int32.to_int (RW.get_ring_output_prod t) in
-		memory_barrier ();
+		xen_mb ();
 		(* 0 <= cons', prod' <= output_length *)
 		let cons' =
 			let x = cons mod output_length in
@@ -307,7 +309,7 @@ module Pipe(RW: RW) = struct
 				else cons' - prod' in
 		let can_write = min len free_space in
 		Cstruct.blit_from_string buf ofs output prod' can_write;
-		memory_barrier ();
+		xen_mb ();
 		RW.set_ring_output_prod t (Int32.of_int (prod + can_write));
 		can_write
 
@@ -316,7 +318,7 @@ module Pipe(RW: RW) = struct
 		let input_length = length input in
 		let cons = Int32.to_int (RW.get_ring_input_cons t) in
 		let prod = Int32.to_int (RW.get_ring_input_prod t) in
-		memory_barrier ();
+		xen_mb ();
 		let cons' =
 			let x = cons mod input_length in
 			if x < 0 then x + input_length else x
@@ -332,7 +334,7 @@ module Pipe(RW: RW) = struct
 				else input_length - cons' in (* read up to the last byte in the ring *)
 		let can_read = min len data_available in
 		Cstruct.blit_to_string input cons' buf ofs can_read;
-		memory_barrier (); (* XXX: not a write_memory_barrier? *)
+		xen_mb (); (* XXX: not a write_memory_barrier? *)
 		RW.set_ring_input_cons t (Int32.of_int (cons + can_read));
 		can_read
 

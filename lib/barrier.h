@@ -10,12 +10,12 @@
 
 #if defined(__i386__)
 #define xen_mb()  asm volatile ( "lock; addl $0,0(%%esp)" : : : "memory" )
-#define xen_rmb() xen_barrier()
-#define xen_wmb() xen_barrier()
+#define xen_rmb() asm volatile ("lock; addl $0,0(%%esp)": : :"memory")
+#define xen_wmb() asm volatile ("": : :"memory")
 #elif defined(__x86_64__)
 #define xen_mb()  asm volatile ( "mfence" : : : "memory")
-#define xen_rmb() xen_barrier()
-#define xen_wmb() xen_barrier()
+#define xen_rmb() asm volatile ("lfence":::"memory")
+#define xen_wmb() asm volatile ("sfence" ::: "memory") /* From CONFIG_UNORDERED_IO (linux) */
 #elif defined(__arm__)
 #define xen_mb()   asm volatile ("dmb" : : : "memory")
 #define xen_rmb()  asm volatile ("dmb" : : : "memory")
