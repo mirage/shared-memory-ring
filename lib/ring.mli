@@ -87,6 +87,9 @@ module Front : sig
       @return true if an event channel notification is required
     *)
   val push_requests_and_check_notify : ('a,'b) t -> bool
+  
+  (** pretty-print ring metadata *)
+  val to_string : ('a, 'b) t -> string
 end
 
 module Back : sig

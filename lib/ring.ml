@@ -164,6 +164,13 @@ module Front = struct
     t.req_prod_pvt <- t.req_prod_pvt + 1;
     s
 
+  let to_string t =
+    let req_prod = sring_req_prod t.sring in
+    let rsp_prod = sring_rsp_prod t.sring in
+    let req_event = sring_req_event t.sring in
+    let rsp_event = sring_rsp_event t.sring in
+    Printf.sprintf "{ req_prod=%d rsp_prod=%d req_event=%d rsp_event=%d req_prod_pvt=%d rsp_cons=%d }" req_prod rsp_prod req_event rsp_event t.req_prod_pvt t.rsp_cons
+
   let rec ack_responses t fn =
     let rsp_prod = sring_rsp_prod t.sring in
     while t.rsp_cons != rsp_prod do
