@@ -37,6 +37,8 @@ val of_buf : buf:Cstruct.t -> idx_size:int -> name:string -> sring
 (** Printable single-line summary of the ring *)
 val to_summary_string : sring -> string
 
+exception Queue_overflow of int * int * int * int
+
 (** The front-end of the shared ring, which issues requests and reads
     responses from the remote domain. 
   *)

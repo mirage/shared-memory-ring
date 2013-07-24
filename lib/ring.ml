@@ -82,8 +82,12 @@ let of_buf ~buf ~idx_size ~name =
 let to_summary_string t =
   Printf.sprintf "ring %s header_size = %d; index slot size = %d; number of entries = %d" t.name t.header_size t.idx_size t.nr_ents
 
-let sring_rsp_prod sring = Int32.to_int (get_ring_hdr_rsp_prod sring.buf)
-let sring_req_prod sring = Int32.to_int (get_ring_hdr_req_prod sring.buf)
+let sring_rsp_prod sring =
+        xen_mb ();
+        Int32.to_int (get_ring_hdr_rsp_prod sring.buf)
+let sring_req_prod sring =
+	xen_mb ();
+	Int32.to_int (get_ring_hdr_req_prod sring.buf)
 let sring_req_event sring =
 	xen_mb ();
 	Int32.to_int (get_ring_hdr_req_event sring.buf)
@@ -92,11 +96,11 @@ let sring_rsp_event sring =
 	Int32.to_int (get_ring_hdr_rsp_event sring.buf)
 
 let sring_push_requests sring req_prod =
-	xen_wmb (); (* ensure requests are seen before the index is updated *)
+	xen_mb (); (* ensure requests are seen before the index is updated *)
 	set_ring_hdr_req_prod sring.buf (Int32.of_int req_prod)
 
 let sring_push_responses sring rsp_prod =
-	xen_wmb (); (* ensure requests are seen before the index is updated *)
+	xen_mb (); (* ensure requests are seen before the index is updated *)
 	set_ring_hdr_rsp_prod sring.buf (Int32.of_int rsp_prod)
 
 let sring_set_rsp_event sring rsp_cons =
@@ -115,6 +119,11 @@ let slot sring idx =
   let off = sring.header_size + (idx * sring.idx_size) in
   sub sring.buf off sring.idx_size
 
+(* The producer pointers are 32-bit unsigned integers *)
+let max_counter = 1 lsl 32
+
+exception Queue_overflow of int * int * int * int
+
 module Front = struct
 
   type ('a,'b) t = {
@@ -122,6 +131,7 @@ module Front = struct
     mutable rsp_cons: int;
     sring: sring;
   }
+
 
   let init ~sring =
     let req_prod_pvt = 0 in
@@ -139,9 +149,6 @@ module Front = struct
   let is_ring_full t =
     get_free_requests t = 0
 
-  let has_unconsumed_responses t =
-    ((sring_rsp_prod t.sring) - t.rsp_cons) > 0
-
   let push_requests t =
     sring_push_requests t.sring t.req_prod_pvt
 
@@ -151,13 +158,6 @@ module Front = struct
     push_requests t;
     (new_idx - (sring_req_event t.sring)) < (new_idx - old_idx)
 
-  let check_for_responses t =
-    if has_unconsumed_responses t then
-      true
-    else begin
-      sring_set_rsp_event t.sring (t.rsp_cons + 1);
-      has_unconsumed_responses t
-    end 
 
   let next_req_id t =
     let s = t.req_prod_pvt in
@@ -172,14 +172,29 @@ module Front = struct
     Printf.sprintf "{ req_prod=%d rsp_prod=%d req_event=%d rsp_event=%d req_prod_pvt=%d rsp_cons=%d }" req_prod rsp_prod req_event rsp_event t.req_prod_pvt t.rsp_cons
 
   let rec ack_responses t fn =
-    let rsp_prod = sring_rsp_prod t.sring in
-    while t.rsp_cons != rsp_prod do
+    (* The number of elements between a and b *)
+    let between t a b =
+      let n = if a <= b then b - a else max_counter - a + b in
+      if n > t.sring.nr_ents
+      then raise (Queue_overflow(a, b, n, t.sring.nr_ents));
+      n in
+
+    let pending_responses t =
+      let rsp_prod = sring_rsp_prod t.sring in
+      between t t.rsp_cons rsp_prod in
+
+    for i = 1 to pending_responses t do
       let slot_id = t.rsp_cons in
       let slot = slot t slot_id in
       fn slot;
       t.rsp_cons <- t.rsp_cons + 1;
     done;
-    if check_for_responses t then ack_responses t fn
+    (* keep reading new responses, or set the event counter in
+       preparation for sleep. *)
+    if pending_responses t > 0 || (
+      sring_set_rsp_event t.sring (t.rsp_cons + 1);
+      pending_responses t > 0
+    ) then ack_responses t fn
 
 end
 
@@ -202,9 +217,11 @@ module Back = struct
  
   let has_unconsumed_requests t =
     let req = (sring_req_prod t.sring) - t.req_cons in
+req > 0
+(*
     let rsp = t.sring.nr_ents - (t.req_cons - t.rsp_prod_pvt) in
     if req < rsp then (req > 0) else (rsp > 0)
- 
+ *)
   let push_responses t =
     sring_push_responses t.sring t.rsp_prod_pvt 
 
@@ -236,15 +253,14 @@ module Back = struct
 	  let rsp_event = sring_rsp_event t.sring in
 	  Printf.sprintf "{ req_prod=%d rsp_prod=%d req_event=%d rsp_event=%d rsp_prod_pvt=%d req_cons=%d }" req_prod rsp_prod req_event rsp_event t.rsp_prod_pvt t.req_cons
 
-  let rec ack_requests t fn =
+  let ack_requests t fn =
     let req_prod = sring_req_prod t.sring in
     while t.req_cons != req_prod do
       let slot_id = t.req_cons in
       let slot = slot t slot_id in
       t.req_cons <- t.req_cons + 1;
       fn slot;
-    done;
-    if has_unconsumed_requests t then ack_requests t fn
+    done
 end
 end
 
