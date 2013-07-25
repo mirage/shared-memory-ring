@@ -24,12 +24,26 @@ module Ring = struct
 		(* memory layout from the frontend's point of view *)
 		cstruct ring {
 			uint8_t output[1024];
-			uint8_t input[1024];
+			uint8_t input[1024]
+			(* (* unsafe to use these as they produce multi byte load/stores *)
 			uint32_t output_cons;
 			uint32_t output_prod;
 			uint32_t input_cons;
 			uint32_t input_prod
+			*)
 		} as little_endian
+		let _output_cons = 2048
+		let _output_prod = _output_cons + 4
+		let _input_cons  = _output_prod + 4
+		let _input_prod  = _input_cons  + 4
+		let get_ring_output_cons c = Int32.of_int (unsafe_load_uint32 c _output_cons)
+		let get_ring_output_prod c = Int32.of_int (unsafe_load_uint32 c _output_prod)
+		let get_ring_input_cons  c = Int32.of_int (unsafe_load_uint32 c _input_cons)
+		let get_ring_input_prod  c = Int32.of_int (unsafe_load_uint32 c _input_prod)
+		let set_ring_output_cons c x = unsafe_save_uint32 c _output_cons (Int32.to_int x)
+		let set_ring_output_prod c x = unsafe_save_uint32 c _output_prod (Int32.to_int x)
+		let set_ring_input_cons  c x = unsafe_save_uint32 c _input_cons (Int32.to_int x)
+		let set_ring_input_prod  c x = unsafe_save_uint32 c _input_prod (Int32.to_int x)
 	end
 	let init = zero
 	let to_debug_map t = [
