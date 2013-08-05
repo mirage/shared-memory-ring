@@ -1,3 +1,6 @@
+0.4.1 (2013-07-25):
+* Fix a ring corruption issue due to multi-byte stores and loads
+
 0.4.0 (2013-04-30):
 * Fix a ring corruption issue which could lead to dropped network packets
   or stalled disks

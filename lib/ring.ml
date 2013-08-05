@@ -25,6 +25,14 @@ let length t = Cstruct.len t
 
 external memory_barrier: unit -> unit = "caml_memory_barrier" "noalloc"
 
+(* [load_uint32 c byte_offset] returns an int containing the 32-bit
+   word found at [byte_offset] read with a single load instruction. *)
+external unsafe_load_uint32: Cstruct.t -> int -> int = "caml_cstruct_unsafe_load_uint32"
+
+(* [save_uint32 c byte_offset newval] writes a 32-bit word at
+   [byte_offset] using a single store instruction. *)
+external unsafe_save_uint32: Cstruct.t -> int -> int -> unit = "caml_cstruct_unsafe_save_uint32"
+
 module Rpc = struct
 
 let rec pow2 = function
@@ -39,7 +47,7 @@ let rec pow2 = function
     uint8_t  pad[47];
   };
 *)
-
+(* (* It's unsafe to use these since they use multi-byte load/stores *)
 cstruct ring_hdr {
   uint32_t req_prod;
   uint32_t req_event;
@@ -47,14 +55,20 @@ cstruct ring_hdr {
   uint32_t rsp_event;
   uint64_t stuff
 } as little_endian
+*)
+
+(* offsets in the header: *)
+let _req_prod  = 0
+let _req_event = 4
+let _rsp_prod  = 8
+let _rsp_event = 12
 
 let initialise ring =
   (* initialise the *_event fields to 1, and the rest to 0 *)
-  set_ring_hdr_req_prod ring 0l;
-  set_ring_hdr_req_event ring 1l;
-  set_ring_hdr_rsp_prod ring 0l;
-  set_ring_hdr_rsp_event ring 1l;
-  set_ring_hdr_stuff ring 0L
+  unsafe_save_uint32 ring _req_prod  0;
+  unsafe_save_uint32 ring _req_event 1;
+  unsafe_save_uint32 ring _rsp_prod  0;
+  unsafe_save_uint32 ring _rsp_event 1;
 
 type sring = {
   buf: Cstruct.t;         (* Overall I/O buffer *)
@@ -77,29 +91,31 @@ let of_buf ~buf ~idx_size ~name =
 let to_summary_string t =
   Printf.sprintf "ring %s header_size = %d; index slot size = %d; number of entries = %d" t.name t.header_size t.idx_size t.nr_ents
 
-let sring_rsp_prod sring = Int32.to_int (get_ring_hdr_rsp_prod sring.buf)
-let sring_req_prod sring = Int32.to_int (get_ring_hdr_req_prod sring.buf)
+let sring_rsp_prod sring =
+	unsafe_load_uint32 sring.buf _rsp_prod
+let sring_req_prod sring =
+        unsafe_load_uint32 sring.buf _req_prod
 let sring_req_event sring =
 	memory_barrier ();
-	Int32.to_int (get_ring_hdr_req_event sring.buf)
+	unsafe_load_uint32 sring.buf _req_event
 let sring_rsp_event sring =
 	memory_barrier ();
-	Int32.to_int (get_ring_hdr_rsp_event sring.buf)
+	unsafe_load_uint32 sring.buf _rsp_event
 
 let sring_push_requests sring req_prod =
 	memory_barrier (); (* ensure requests are seen before the index is updated *)
-	set_ring_hdr_req_prod sring.buf (Int32.of_int req_prod)
+	unsafe_save_uint32 sring.buf _req_prod req_prod
 
 let sring_push_responses sring rsp_prod =
 	memory_barrier (); (* ensure requests are seen before the index is updated *)
-	set_ring_hdr_rsp_prod sring.buf (Int32.of_int rsp_prod)
+	unsafe_save_uint32 sring.buf _rsp_prod rsp_prod
 
-let sring_set_rsp_event sring rsp_cons =
-	set_ring_hdr_rsp_event sring.buf (Int32.of_int rsp_cons);
+let sring_set_rsp_event sring rsp_event =
+	unsafe_save_uint32 sring.buf _rsp_event rsp_event;
 	memory_barrier ()
 
-let sring_set_req_event sring req_cons =
-	set_ring_hdr_req_event sring.buf (Int32.of_int req_cons);
+let sring_set_req_event sring req_event =
+	unsafe_save_uint32 sring.buf _req_event req_event;
 	memory_barrier ()
 
 let nr_ents sring = sring.nr_ents
