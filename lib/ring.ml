@@ -35,10 +35,6 @@ external unsafe_save_uint32: Cstruct.t -> int -> int -> unit = "caml_cstruct_uns
 
 module Rpc = struct
 
-let rec pow2 = function
-  | 0 -> 1
-  | n -> 2 * (pow2 (n - 1))
-
 (*
   struct sring {
     RING_IDX req_prod, req_event;

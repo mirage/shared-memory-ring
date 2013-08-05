@@ -14,68 +14,68 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Lwt interface to shared memory ring *)
+(** Lwt interface to shared memory ring. *)
 
 exception Shutdown
 
 open Ring
 
-(** The (client) front-end connection to the shared ring *)
+(** The (client) front-end connection to the shared ring. *)
 module Front : sig
 
-  (** 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
   type ('a,'b) t
+  (** Type of a frontend connection to a shared ring. ['a] is the
+      response type, and ['b] is the request id type (e.g. int or
+      int64). *)
 
-  (** Given a shared ring, initialise an lwt client
-    * @param ring Shared ring frontend to attach to
-    * @return stateful ring client
-    *)
   val init : ('b -> string) -> ('a, 'b) Ring.Rpc.Front.t -> ('a,'b) t
+  (** [init string_of_id ring] initialises a stateful lwt client
+      attached to [ring]. *)
 
-  (** Block until a ring slot is free, write the request and return the response thread *)
   val write : ('a, 'b) t -> (buf -> 'b) -> 'a Lwt.t Lwt.t
+  (** [write ring req_fn] blocks until a ring slot is free, calls
+      [req_fn] on it and returns a thread that will wakeup when the
+      response will be available. *)
 
-  (** Advance the shared ring pointers, exposing the written requests to the other end.
-      If the other end won't see the update, call the provided notify function to signal it. *)
   val push : ('a, 'b) t -> (unit -> unit) -> unit
+  (** [push ring notify_fn] advances [ring] pointers, exposing the
+      written requests to the other end. If the other end won't see
+      the update, [notify_fn] is called to signal it. *)
 
-  (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
-  val push_request_async : ('a,'b) t -> (unit -> unit) -> (buf -> 'b) -> ('a Lwt.t -> unit Lwt.t) -> unit Lwt.t 
-
-  (** Given a function {[fn] [notify_cb]} which writes to a slot and returns
-      the request id, this will wait for a free request slot,
-      write the request, and return with the response when it
-      is available.
-      @param fn Function that writes to a request slot and returns the request id
-      @param notify_cb Callback function which should trigger a notify of the remote
-      @return Thread which returns the response value to the input request
-    *)
   val push_request_and_wait : ('a,'b) t -> (unit -> unit) -> (buf -> 'b) -> 'a Lwt.t
+  (** [push_request_and_wait frontend notify_fn req_fn] is [write
+      req_fn >>= fun t -> push notify_fn; return t]. *)
 
-  (** Poll the ring for responses, and wake up any threads that are
-      sleeping (as a result of calling {[push_request_and_wait]}).
-	  This can be called regularly, or triggered via some external event
-      such as an event channel signal.
-    *)
+  val push_request_async : ('a,'b) t -> (unit -> unit) -> (buf -> 'b) ->
+    ('a Lwt.t -> unit Lwt.t) -> unit Lwt.t
+  (** [push_request_async ring notify_fn req_fn free_fn] is like
+      [push_request_and_wait] except it calls [free_fn] on the result
+      of [write] instead of returning it. *)
+
   val poll : ('a,'b) t -> (buf -> ('b * 'a)) -> unit
+  (** [poll frontend resp_fn] polls the ring for responses, and wakes
+      up any threads that are sleeping (as a result of calling
+      [push_request_and_wait]). This can be called regularly, or
+      triggered via some external event such as an event channel
+      signal. *)
 
   val shutdown : ('a, 'b) t -> unit
 end
 
-(** The (server) back-end connection to the shared ring *)
+(** The (server) back-end connection to the shared ring. *)
 module Back : sig
 
-  (** 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
   type ('a,'b) t
+  (** Type of a backend connection to a shared ring. 'a is the
+      response type, and 'b is the request id type (e.g. int or
+      int64). *)
 
-  (** Given a shared ring, initialise an lwt server
-    * @param ring Shared ring frontend to attach to
-    * @return stateful ring server
-    *)
   val init : ('b -> string) -> ('a, 'b) Ring.Rpc.Back.t -> ('a,'b) t
+  (** [init string_of_id ring] initialises a stateful lwt server
+      attached to [ring]. *)
 
-  (** [push_response t notifyfn fn] finds a free slot and applies it to [fn],
-      signalling the client via [notifyfn] that a response is ready. *)
   val push_response : ('a, 'b) t -> (unit -> unit) -> (buf -> unit) -> unit
-
+  (** [push_response t notify_fn fn] finds a free slot and applies it
+      to [fn], signalling the client via [notify_fn] that a response
+      is ready. *)
 end

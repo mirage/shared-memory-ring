@@ -76,3 +76,11 @@ Test lwt_test
   Run$:               flag(tests)
   Command:            $lwt_test
   WorkingDirectory:   lwt_test
+
+Document api
+  Title: Documentation and API reference
+  Type: ocamlbuild (0.3)
+  BuildTools+: ocamldoc
+  XOCamlbuildModules: Ring, Lwt_ring, Xenstore_ring, Console_ring
+  XOcamlbuildPath: doc
+  Install: false

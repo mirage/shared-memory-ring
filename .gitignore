@@ -6,4 +6,4 @@ _build/
 *.bin
 setup.data
 setup.log
-
+*.docdir
