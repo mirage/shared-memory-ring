@@ -103,3 +103,4 @@ true: annot
 <lwt_test/lwt_test>: pkg_lwt.syntax
 <lib>: include
 <lwt>: include
+<xen>: include
