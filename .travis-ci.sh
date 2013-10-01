@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 # OPAM packages needed to build tests.
-OPAM_PACKAGES="cstruct lwt"
+OPAM_PACKAGES="cstruct lwt ounit"
 
 function setup_arm_chroot {
   echo Setting up qemu chroot for ARM
