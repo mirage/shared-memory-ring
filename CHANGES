@@ -1,3 +1,6 @@
+0.4.2 (trunk):
+* Add Travis CI scripts.
+
 0.4.1 (2013-07-25):
 * Fix a ring corruption issue due to multi-byte stores and loads
 
