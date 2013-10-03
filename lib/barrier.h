@@ -20,7 +20,7 @@
 # ifndef _M_ARM
 #define xen_mb()   {}
 #define xen_rmb()  {}
-#define xen_rmb()  {}
+#define xen_wmb()  {}
 # elif _M_ARM > 6
 #define xen_mb()   asm volatile ("dmb" : : : "memory")
 #define xen_rmb()  asm volatile ("dmb" : : : "memory")
