@@ -17,9 +17,17 @@
 #define xen_rmb() xen_barrier()
 #define xen_wmb() xen_barrier()
 #elif defined(__arm__)
+# ifndef _M_ARM
+#define xen_mb()   {}
+#define xen_rmb()  {}
+#define xen_wmb()  {}
+# elif _M_ARM > 6
 #define xen_mb()   asm volatile ("dmb" : : : "memory")
 #define xen_rmb()  asm volatile ("dmb" : : : "memory")
 #define xen_wmb()  asm volatile ("dmb" : : : "memory")
+# else
+#error This ARM variant needs testing
+# endif /* ifdef _M_ARM */
 #elif defined(__aarch64__)
 #define xen_mb()   asm volatile ("dmb sy" : : : "memory")
 #define xen_rmb()  asm volatile ("dmb sy" : : : "memory")
