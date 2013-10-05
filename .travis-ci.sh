@@ -35,6 +35,7 @@ function setup_arm_chroot {
   ls -la $DIR/$TRAVIS_BUILD_DIR
   sudo touch $DIR/.chroot_is_done
   sudo chroot $DIR bash -c "cd $TRAVIS_BUILD_DIR && ./.travis-ci.sh"
+  exit 0
 } 
 
 if [ -e "/.chroot_is_done" ]; then
@@ -45,18 +46,18 @@ else
   if [ "$XARCH" = "arm" ]; then
     setup_arm_chroot
   else
-case "$OCAML_VERSION,$OPAM_VERSION" in
-3.12.1,1.0.0) ppa=avsm/ocaml312+opam10 ;;
-3.12.1,1.1.0) ppa=avsm/ocaml312+opam11 ;;
-4.00.1,1.0.0) ppa=avsm/ocaml40+opam10 ;;
-4.00.1,1.1.0) ppa=avsm/ocaml40+opam11 ;;
-4.01.0,1.0.0) ppa=avsm/ocaml41+opam10 ;;
-4.01.0,1.1.0) ppa=avsm/ocaml41+opam11 ;;
-*) echo Unknown $OCAML_VERSION,$OPAM_VERSION; exit 1 ;;
-esac
-echo "yes" | sudo add-apt-repository ppa:$ppa
-sudo apt-get update -qq
-fi
+    case "$OCAML_VERSION,$OPAM_VERSION" in
+    3.12.1,1.0.0) ppa=avsm/ocaml312+opam10 ;;
+    3.12.1,1.1.0) ppa=avsm/ocaml312+opam11 ;;
+    4.00.1,1.0.0) ppa=avsm/ocaml40+opam10 ;;
+    4.00.1,1.1.0) ppa=avsm/ocaml40+opam11 ;;
+    4.01.0,1.0.0) ppa=avsm/ocaml41+opam10 ;;
+    4.01.0,1.1.0) ppa=avsm/ocaml41+opam11 ;;
+    *) echo Unknown $OCAML_VERSION,$OPAM_VERSION; exit 1 ;;
+    esac
+    echo "yes" | sudo add-apt-repository ppa:$ppa
+    sudo apt-get update -qq
+  fi
 fi
 
 sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam
@@ -72,6 +73,6 @@ opam init
 
 opam install ${OPAM_PACKAGES}
 
-eval `opam config -env`
+eval `opam config env`
 make
 make test
