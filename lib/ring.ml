@@ -75,6 +75,7 @@ type sring = {
 }
 
 let of_buf ~buf ~idx_size ~name =
+  initialise buf;
   let header_size = 4+4+4+4+48 in (* header bytes size of struct sring *)
   (* Round down to the nearest power of 2, so we can mask indices easily *)
   let round_down_to_nearest_2 x =
@@ -179,7 +180,23 @@ module Front = struct
     done;
     if check_for_responses t then ack_responses t fn
 
-end
+  let to_string t =
+    let nr_unconsumed_responses = (sring_rsp_prod t.sring) - t.rsp_cons in
+    let nr_free_requests = get_free_requests t in
+    Printf.sprintf "Front { req_prod = %d; rsp_prod = %d; req_event = %d; rsp_event = %d; rsp_cons = %d; req_prod_pvt = %d; %s; %s }"
+      (sring_req_prod t.sring)
+      (sring_rsp_prod t.sring)
+      (sring_req_event t.sring)
+      (sring_rsp_event t.sring)
+      t.rsp_cons
+      t.req_prod_pvt
+      (if nr_unconsumed_responses > 0
+       then Printf.sprintf "%d unconsumed responses" nr_unconsumed_responses
+       else "frontend has consumed all responses")
+      (if nr_free_requests > 0
+       then Printf.sprintf "%d free request slots" nr_free_requests
+       else "all slots are full")
+    end
 
 module Back = struct
 

@@ -60,6 +60,10 @@ module Front : sig
       signal. *)
 
   val shutdown : ('a, 'b) t -> unit
+
+  val to_string : ('a,'b) t -> string
+  (** [to_string t] returns debug-printable description of the ring
+      metadata *)
 end
 
 (** The (server) back-end connection to the shared ring. *)
