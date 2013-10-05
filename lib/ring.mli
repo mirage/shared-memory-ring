@@ -81,6 +81,9 @@ module Front : sig
   (** [push_requests_and_check_notify frontend] updates the shared
       request producer, and returns [true] if an event notification is
       required to wake up the remote domain. *)
+
+  val to_string : ('a, 'b) t -> string
+  (** [to_string t] pretty-prints ring metadata *)
 end
 
 (** The back-end of the shared ring, which reads requests and writes
