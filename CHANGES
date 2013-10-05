@@ -1,5 +1,10 @@
-0.4.2 (trunk):
+0.4.3 (trunk):
 * Add Travis CI scripts.
+* Fix ARMv5 compilation.
+
+0.4.2 (2013-10-05):
+* Properly initialise the shared event counters. This bug prevented the
+  backend from notifying the frontend, causing deadlock.
 
 0.4.1 (2013-07-25):
 * Fix a ring corruption issue due to multi-byte stores and loads
