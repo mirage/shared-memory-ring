@@ -75,6 +75,7 @@ type sring = {
 }
 
 let of_buf ~buf ~idx_size ~name =
+  initialise buf;
   let header_size = 4+4+4+4+48 in (* header bytes size of struct sring *)
   (* Round down to the nearest power of 2, so we can mask indices easily *)
   let round_down_to_nearest_2 x =
