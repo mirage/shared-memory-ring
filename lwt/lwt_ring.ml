@@ -95,6 +95,7 @@ module Front = struct
        | Some u -> Lwt.wakeup_exn u Shutdown; loop ()
      in loop ()
 
+  let to_string t = Ring.Rpc.Front.to_string t.ring
 end
 
 module Back = struct
