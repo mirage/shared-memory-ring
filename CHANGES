@@ -1,4 +1,5 @@
 0.4.4 (trunk):
+* Standardize indentation by running through ocp-indent.
 
 0.4.3 (2013-10-05):
 * Add Travis CI scripts.

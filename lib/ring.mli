@@ -21,153 +21,153 @@ type buf = Cstruct.t
 
 module Rpc : sig
 
-type sring
-(** Abstract type for a shared ring. *)
+  type sring
+  (** Abstract type for a shared ring. *)
 
-val of_buf : buf:Cstruct.t -> idx_size:int -> name:string -> sring
-(** [of_buf ~buf ~idx_size ~name] is an [sring] constructed from
-    [buf], of maximum request/response size [idx_size]. [name] is used for
-    pretty-printing. [buf] should be a Cstruct.t comprising pre-allocated
-    contiguous I/O pages. *)
+  val of_buf : buf:Cstruct.t -> idx_size:int -> name:string -> sring
+  (** [of_buf ~buf ~idx_size ~name] is an [sring] constructed from
+      [buf], of maximum request/response size [idx_size]. [name] is used for
+      pretty-printing. [buf] should be a Cstruct.t comprising pre-allocated
+      contiguous I/O pages. *)
 
-val to_summary_string : sring -> string
-(** [to_summary_string ring] is a printable single-line summary of the
-    ring. *)
+  val to_summary_string : sring -> string
+  (** [to_summary_string ring] is a printable single-line summary of the
+      ring. *)
 
-(** The front-end of the shared ring, which reads requests and reads
-    responses from the remote domain. *)
-module Front : sig
+  (** The front-end of the shared ring, which reads requests and reads
+      responses from the remote domain. *)
+  module Front : sig
 
-  type ('a,'b) t
-  (** Type of a frontend. 'a is the response type, and 'b is the
-      request id type (e.g. int or int64). *)
+    type ('a,'b) t
+    (** Type of a frontend. 'a is the response type, and 'b is the
+        request id type (e.g. int or int64). *)
 
-  val init : sring:sring -> ('a,'b) t
-  (** [init ~sring] is an initialized frontend attached to shared ring
-      [sring]. *)
+    val init : sring:sring -> ('a,'b) t
+    (** [init ~sring] is an initialized frontend attached to shared ring
+        [sring]. *)
 
-  val slot : ('a,'b) t -> int -> Cstruct.t
-  (** [slot frontend idx] retrieves the request/response slot at [idx]
-      as an Cstruct.t. [idx] should be less than [nr_ents]. *)
+    val slot : ('a,'b) t -> int -> Cstruct.t
+    (** [slot frontend idx] retrieves the request/response slot at [idx]
+        as an Cstruct.t. [idx] should be less than [nr_ents]. *)
 
-  val nr_ents : ('a,'b) t -> int
-  (** [nr_ents frontend] is the number of slots in the underlying
-      shared ring. *)
+    val nr_ents : ('a,'b) t -> int
+    (** [nr_ents frontend] is the number of slots in the underlying
+        shared ring. *)
 
-  val get_free_requests : ('a,'b) t -> int
-  (** [get_free_requests frontend] is the number of free request slots
-      remaining in [frontend]. *)
+    val get_free_requests : ('a,'b) t -> int
+    (** [get_free_requests frontend] is the number of free request slots
+        remaining in [frontend]. *)
 
-  val next_req_id: ('a,'b) t -> int
-  (** [next_req_id frontend] advances the ring request producer and
-      returns the latest slot id. *)
+    val next_req_id: ('a,'b) t -> int
+    (** [next_req_id frontend] advances the ring request producer and
+        returns the latest slot id. *)
 
-  val ack_responses : ('a,'b) t -> (Cstruct.t -> unit) -> unit
-  (** [ack_response frontend f] reads all the outstanding responses
-      from the remote domain, calling [f] on them, and updating the
-      response consumer pointer after each individual slot has been
-      processed.
+    val ack_responses : ('a,'b) t -> (Cstruct.t -> unit) -> unit
+    (** [ack_response frontend f] reads all the outstanding responses
+        from the remote domain, calling [f] on them, and updating the
+        response consumer pointer after each individual slot has been
+        processed.
 
-      This is the low-level function which is only used if some sort
-      of batching of requests is being performed, and normally you
-      should use the flow-controlled [poll] that will ack the
-      responses and wake up any sleeping threads that were waiting for
-      that particular response. *)
+        This is the low-level function which is only used if some sort
+        of batching of requests is being performed, and normally you
+        should use the flow-controlled [poll] that will ack the
+        responses and wake up any sleeping threads that were waiting for
+        that particular response. *)
 
-  val push_requests : ('a,'b) t -> unit
-  (** [push_requests frontend] updates the shared request producer. *)
+    val push_requests : ('a,'b) t -> unit
+    (** [push_requests frontend] updates the shared request producer. *)
 
-  val push_requests_and_check_notify : ('a,'b) t -> bool
-  (** [push_requests_and_check_notify frontend] updates the shared
-      request producer, and returns [true] if an event notification is
-      required to wake up the remote domain. *)
+    val push_requests_and_check_notify : ('a,'b) t -> bool
+    (** [push_requests_and_check_notify frontend] updates the shared
+        request producer, and returns [true] if an event notification is
+        required to wake up the remote domain. *)
 
-  val to_string : ('a, 'b) t -> string
-  (** [to_string t] pretty-prints ring metadata *)
-end
+    val to_string : ('a, 'b) t -> string
+    (** [to_string t] pretty-prints ring metadata *)
+  end
 
-(** The back-end of the shared ring, which reads requests and writes
-    responses to the remote domain. *)
-module Back : sig
+  (** The back-end of the shared ring, which reads requests and writes
+      responses to the remote domain. *)
+  module Back : sig
 
-  type ('a,'b) t
-  (** Type of a backend. 'a is the response type, and 'b is the
-      request id type (e.g. int or int64). *)
+    type ('a,'b) t
+    (** Type of a backend. 'a is the response type, and 'b is the
+        request id type (e.g. int or int64). *)
 
-  val init : sring:sring -> ('a,'b) t
-  (** [init ~sring] is an initialized backend attached to shared ring
-      [sring]. *)
+    val init : sring:sring -> ('a,'b) t
+    (** [init ~sring] is an initialized backend attached to shared ring
+        [sring]. *)
 
-  val slot : ('a,'b) t -> int -> Cstruct.t
-  (** [slot backend idx] retrieves the request/response slot at [idx]
-      as an Cstruct.t. [idx] should be less than [nr_ents]. *)
+    val slot : ('a,'b) t -> int -> Cstruct.t
+    (** [slot backend idx] retrieves the request/response slot at [idx]
+        as an Cstruct.t. [idx] should be less than [nr_ents]. *)
 
-  val nr_ents : ('a,'b) t -> int
-  (** [nr_ents backend] is the number of slots in the underlying
-      shared ring. *)
+    val nr_ents : ('a,'b) t -> int
+    (** [nr_ents backend] is the number of slots in the underlying
+        shared ring. *)
 
-  val next_res_id: ('a,'b) t -> int
-  (** [next_res_id backend] advances the response producer and return the
-      latest slot id. *)
+    val next_res_id: ('a,'b) t -> int
+    (** [next_res_id backend] advances the response producer and return the
+        latest slot id. *)
 
-  val push_responses : ('a,'b) t -> unit
-  (** [push_responses backend] updates the shared response producer. *)
+    val push_responses : ('a,'b) t -> unit
+    (** [push_responses backend] updates the shared response producer. *)
 
-  val push_responses_and_check_notify : ('a,'b) t -> bool
-  (** [push_responses_and_check_notify backend] updates the shared
-      response producer, and returns [true] if an event notification
-      is required to wake up the remote domain. *)
+    val push_responses_and_check_notify : ('a,'b) t -> bool
+    (** [push_responses_and_check_notify backend] updates the shared
+        response producer, and returns [true] if an event notification
+        is required to wake up the remote domain. *)
 
-  val more_to_do : ('a, 'b) t -> bool
-  (** [more_to_do backend] returns [true] if there are outstanding
-      requests on the ring which we should immediately process without
-      waiting for an event notification. *)
+    val more_to_do : ('a, 'b) t -> bool
+    (** [more_to_do backend] returns [true] if there are outstanding
+        requests on the ring which we should immediately process without
+        waiting for an event notification. *)
 
-  val ack_requests : ('a, 'b) t -> (Cstruct.t -> unit) -> unit
-  (** [ack_requests t fn] applies [fn slot] to each [slot] containing
-      a new request. *)
+    val ack_requests : ('a, 'b) t -> (Cstruct.t -> unit) -> unit
+    (** [ack_requests t fn] applies [fn slot] to each [slot] containing
+        a new request. *)
 
-  val to_string : ('a, 'b) t -> string
-  (** [to_string backend] pretty-prints the ring metadata. *)
-end
+    val to_string : ('a, 'b) t -> string
+    (** [to_string backend] pretty-prints the ring metadata. *)
+  end
 
 end
 
 module type RW = sig
-	(** A bi-directional pipe where 'input' and 'output' are from
-	    the frontend's (i.e. the guest's) point of view *)
-	val get_ring_input: Cstruct.t -> Cstruct.t
-	val get_ring_input_cons: Cstruct.t -> int32
-	val get_ring_input_prod: Cstruct.t -> int32
-	val set_ring_input_cons: Cstruct.t -> int32 -> unit
-	val set_ring_input_prod: Cstruct.t -> int32 -> unit
+  (** A bi-directional pipe where 'input' and 'output' are from
+      	    the frontend's (i.e. the guest's) point of view *)
+  val get_ring_input: Cstruct.t -> Cstruct.t
+  val get_ring_input_cons: Cstruct.t -> int32
+  val get_ring_input_prod: Cstruct.t -> int32
+  val set_ring_input_cons: Cstruct.t -> int32 -> unit
+  val set_ring_input_prod: Cstruct.t -> int32 -> unit
 
-	val get_ring_output: Cstruct.t -> Cstruct.t
-	val get_ring_output_cons: Cstruct.t -> int32
-	val get_ring_output_prod: Cstruct.t -> int32
-	val set_ring_output_cons: Cstruct.t -> int32 -> unit
-	val set_ring_output_prod: Cstruct.t -> int32 -> unit
+  val get_ring_output: Cstruct.t -> Cstruct.t
+  val get_ring_output_cons: Cstruct.t -> int32
+  val get_ring_output_prod: Cstruct.t -> int32
+  val set_ring_output_cons: Cstruct.t -> int32 -> unit
+  val set_ring_output_prod: Cstruct.t -> int32 -> unit
 end
 
 module Reverse: functor(RW: RW) -> RW
 
 module Pipe: functor(RW: RW) -> sig
-	val unsafe_write: Cstruct.t -> string -> int -> int -> int
-	val unsafe_read: Cstruct.t -> string -> int -> int -> int
+  val unsafe_write: Cstruct.t -> string -> int -> int -> int
+  val unsafe_read: Cstruct.t -> string -> int -> int -> int
 end
 
 module type Bidirectional_byte_stream = sig
-	val init: Cstruct.t -> unit
-	val to_debug_map: Cstruct.t -> (string * string) list
+  val init: Cstruct.t -> unit
+  val to_debug_map: Cstruct.t -> (string * string) list
 
-	module Front : sig
-		val unsafe_write: Cstruct.t -> string -> int -> int -> int
-		val unsafe_read: Cstruct.t -> string -> int -> int -> int
-	end
-	module Back : sig
-		val unsafe_write: Cstruct.t -> string -> int -> int -> int
-		val unsafe_read: Cstruct.t -> string -> int -> int -> int
-	end
+  module Front : sig
+    val unsafe_write: Cstruct.t -> string -> int -> int -> int
+    val unsafe_read: Cstruct.t -> string -> int -> int -> int
+  end
+  module Back : sig
+    val unsafe_write: Cstruct.t -> string -> int -> int -> int
+    val unsafe_read: Cstruct.t -> string -> int -> int -> int
+  end
 end
 
 val zero: Cstruct.t -> unit
