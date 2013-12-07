@@ -1,5 +1,5 @@
 (*
- * Copyright (C) Citrix Systems Inc.
+ * Copyright (C) 2013 Citrix Systems Inc.
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -56,8 +56,8 @@ let one_request_response () =
 
   assert_equal ~msg:"more_to_do" ~printer:string_of_bool false (Ring.Rpc.Back.more_to_do back);
   lwt () = Lwt.choose [ Lwt_unix.sleep 5.; request_th ] in
-assert_equal ~msg:"is_sleeping" ~printer:string_of_bool false (Lwt.is_sleeping request_th);
-return ()
+  assert_equal ~msg:"is_sleeping" ~printer:string_of_bool false (Lwt.is_sleeping request_th);
+  return ()
 
 let one_request_response () = Lwt_main.run (one_request_response ())
 
@@ -69,7 +69,7 @@ let _ =
     "Test shared memory ring code";
 
   let suite = "ring" >:::
-                [
-                  "one_request_response" >:: one_request_response
-                ] in
+              [
+                "one_request_response" >:: one_request_response
+              ] in
   run_test_tt ~verbose:!verbose suite

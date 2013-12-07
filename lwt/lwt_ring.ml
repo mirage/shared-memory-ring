@@ -41,61 +41,64 @@ module Front = struct
       let node = Lwt_sequence.add_r u t.waiters in
       Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
       lwt () = th in
-  get_free_slot t
-end 
+      get_free_slot t
+    end 
 
-let poll t respfn =
-  Ring.Rpc.Front.ack_responses t.ring (fun slot ->
-      let id, resp = respfn slot in
-      try
-        let u = Hashtbl.find t.wakers id in
-        Hashtbl.remove t.wakers id;
-        Lwt.wakeup u resp
-      with Not_found ->
-        printf "RX: ack (id = %s) wakener not found\n" (t.string_of_id id);
-        printf "    valid ids = [ %s ]\n%!" (String.concat "; " (List.map t.string_of_id (Hashtbl.fold (fun k _ acc -> k :: acc) t.wakers [])));
-    );
-  (* Check for any sleepers waiting for free space *)
-  match Lwt_sequence.take_opt_l t.waiters with
-  |None -> ()
-  |Some u -> Lwt.wakeup u ()
-
-let write t reqfn =
-  lwt slot_id = get_free_slot t in
-let slot = Ring.Rpc.Front.slot t.ring slot_id in
-let th, u = Lwt.task () in
-let id = reqfn slot in
-Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
-Hashtbl.add t.wakers id u;
-return th
-
-let push t notifyfn =
-  if Ring.Rpc.Front.push_requests_and_check_notify t.ring
-  then notifyfn ()
-
-let push_request_and_wait t notifyfn reqfn =
-  lwt th = write t reqfn in
-push t notifyfn;
-th
-
-let push_request_async t notifyfn reqfn freefn =
-  lwt th = write t reqfn in
-push t notifyfn;
-let _ = freefn th in
-return ()
-
-let shutdown t =
-  Hashtbl.iter (fun id th ->
-      Lwt.wakeup_exn th Shutdown
-    ) t.wakers;
-  (* Check for any sleepers waiting for free space *)
-  let rec loop () =
+  let poll t respfn =
+    Ring.Rpc.Front.ack_responses t.ring (fun slot ->
+        let id, resp = respfn slot in
+        try
+          let u = Hashtbl.find t.wakers id in
+          Hashtbl.remove t.wakers id;
+          Lwt.wakeup u resp
+        with Not_found ->
+          printf "RX: ack (id = %s) wakener not found\n" (t.string_of_id id);
+          printf "    valid ids = [ %s ]\n%!"
+            (String.concat "; " 
+               (List.map t.string_of_id 
+                  (Hashtbl.fold (fun k _ acc -> k :: acc) t.wakers [])));
+      );
+    (* Check for any sleepers waiting for free space *)
     match Lwt_sequence.take_opt_l t.waiters with
-    | None -> ()
-    | Some u -> Lwt.wakeup_exn u Shutdown; loop ()
-  in loop ()
+    |None -> ()
+    |Some u -> Lwt.wakeup u ()
 
-let to_string t = Ring.Rpc.Front.to_string t.ring
+  let write t reqfn =
+    lwt slot_id = get_free_slot t in
+    let slot = Ring.Rpc.Front.slot t.ring slot_id in
+    let th, u = Lwt.task () in
+    let id = reqfn slot in
+    Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
+    Hashtbl.add t.wakers id u;
+    return th
+
+  let push t notifyfn =
+    if Ring.Rpc.Front.push_requests_and_check_notify t.ring
+    then notifyfn ()
+
+  let push_request_and_wait t notifyfn reqfn =
+    lwt th = write t reqfn in
+    push t notifyfn;
+    th
+
+  let push_request_async t notifyfn reqfn freefn =
+    lwt th = write t reqfn in
+    push t notifyfn;
+    let _ = freefn th in
+    return ()
+
+  let shutdown t =
+    Hashtbl.iter (fun id th ->
+        Lwt.wakeup_exn th Shutdown
+      ) t.wakers;
+    (* Check for any sleepers waiting for free space *)
+    let rec loop () =
+      match Lwt_sequence.take_opt_l t.waiters with
+      | None -> ()
+      | Some u -> Lwt.wakeup_exn u Shutdown; loop ()
+    in loop ()
+
+  let to_string t = Ring.Rpc.Front.to_string t.ring
 end
 
 module Back = struct
