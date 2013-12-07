@@ -171,6 +171,7 @@ module type Bidirectional_byte_stream = sig
 end
 
 val zero: Cstruct.t -> unit
+(** [zero c] sets every byte of the [c] Cstruct to zero. *)
 
 val unsafe_load_uint32: Cstruct.t -> int -> int
 
