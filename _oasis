@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        shared-memory-ring
-Version:     0.4.4
+Version:     1.0.0
 Synopsis:    Xen-style shared memory rings
 Authors:     Anil Madhavapeddy, David Scott
 License:     ISC
