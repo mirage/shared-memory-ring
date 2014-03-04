@@ -152,6 +152,24 @@ end
 module Reverse: functor(RW: RW) -> RW
 
 module Pipe: functor(RW: RW) -> sig
+  val write_prepare: Cstruct.t -> int32 * Cstruct.t
+  (** [write_prepare ring] returns [(seq,buffer)] where [buffer]
+      is the next available contiguous free space area, and [seq]
+      is the sequence number of the first byte of [buffer] *)
+
+  val write_commit: Cstruct.t -> int32 -> unit
+  (** [write_commit ring seq] signals that data up to [seq] should
+      be exposed to the other end. *)
+
+  val read_prepare: Cstruct.t -> int32 * Cstruct.t
+  (** [read_prepare ring] returns [(seq,buffer]) where [buffer]
+      is the next available contiguous chunk of readable data,
+      and [seq] is the sequence number of the first byte of [buffer] *)
+
+  val read_commit: Cstruct.t -> int32 -> unit
+  (** [read_commit ring seq] signals that data up to [seq] has
+      been processed and may be overwritten with fresh data. *)
+
   val unsafe_write: Cstruct.t -> string -> int -> int -> int
   val unsafe_read: Cstruct.t -> string -> int -> int -> int
 end

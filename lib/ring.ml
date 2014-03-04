@@ -308,7 +308,7 @@ module Reverse(RW: RW) = struct
 end
 
 module Pipe(RW: RW) = struct
-  let unsafe_write t buf ofs len =
+  let write_prepare t =
     let output = RW.get_ring_output t in
     let output_length = length output in
     (* Remember: the producer and consumer indices can be >> output_length *)
@@ -329,13 +329,14 @@ module Pipe(RW: RW) = struct
       if prod' >= cons'
       then output_length - prod' (* in this write, fill to the end *)
       else cons' - prod' in
-    let can_write = min len free_space in
-    Cstruct.blit_from_string buf ofs output prod' can_write;
-    memory_barrier ();
-    RW.set_ring_output_prod t (Int32.of_int (prod + can_write));
-    can_write
+    Int32.of_int prod, Cstruct.sub output prod' free_space
 
-  let unsafe_read t buf ofs len =
+  let write_commit t prod' =
+    memory_barrier ();
+    let prod = RW.get_ring_output_prod t in
+    RW.set_ring_output_prod t (max prod' prod)
+
+  let read_prepare t =
     let input = RW.get_ring_input t in
     let input_length = length input in
     let cons = Int32.to_int (RW.get_ring_input_cons t) in
@@ -354,11 +355,28 @@ module Pipe(RW: RW) = struct
       if prod' > cons'
       then prod' - cons'
       else input_length - cons' in (* read up to the last byte in the ring *)
+    Int32.of_int cons, Cstruct.sub input cons' data_available
+
+  let read_commit t (cons':int32) =
+    let cons = RW.get_ring_input_cons t in
+    RW.set_ring_input_cons t (max cons' cons)
+
+  (* Backwards compatible string interface: *)
+  let unsafe_read t buf ofs len =
+    let seq, frag = read_prepare t in
+    let data_available = Cstruct.len frag in
     let can_read = min len data_available in
-    Cstruct.blit_to_string input cons' buf ofs can_read;
-    memory_barrier (); (* XXX: not a write_memory_barrier? *)
-    RW.set_ring_input_cons t (Int32.of_int (cons + can_read));
+    Cstruct.blit_to_string frag 0 buf ofs can_read;
+    read_commit t Int32.(add seq (of_int can_read));
     can_read
+
+  let unsafe_write t buf ofs len =
+    let seq, frag = write_prepare t in
+    let free_space = Cstruct.len frag in
+    let can_write = min len free_space in
+    Cstruct.blit_from_string buf ofs frag 0 can_write;
+    write_commit t Int32.(add seq (of_int can_write));
+    can_write
 
   let rec repeat f from buf ofs len =
     let n = f from buf ofs len in
