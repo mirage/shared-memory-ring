@@ -151,7 +151,7 @@ end
 
 module Reverse: functor(RW: RW) -> RW
 
-module Pipe: functor(RW: RW) -> sig
+module type S = sig
   val write_prepare: Cstruct.t -> int32 * Cstruct.t
   (** [write_prepare ring] returns [(seq,buffer)] where [buffer]
       is the next available contiguous free space area, and [seq]
@@ -174,18 +174,14 @@ module Pipe: functor(RW: RW) -> sig
   val unsafe_read: Cstruct.t -> string -> int -> int -> int
 end
 
+module Pipe: functor(RW: RW) -> S
+
 module type Bidirectional_byte_stream = sig
   val init: Cstruct.t -> unit
   val to_debug_map: Cstruct.t -> (string * string) list
 
-  module Front : sig
-    val unsafe_write: Cstruct.t -> string -> int -> int -> int
-    val unsafe_read: Cstruct.t -> string -> int -> int -> int
-  end
-  module Back : sig
-    val unsafe_write: Cstruct.t -> string -> int -> int -> int
-    val unsafe_read: Cstruct.t -> string -> int -> int -> int
-  end
+  module Front : S
+  module Back : S
 end
 
 val zero: Cstruct.t -> unit

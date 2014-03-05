@@ -307,6 +307,20 @@ module Reverse(RW: RW) = struct
   let set_ring_output_prod = RW.set_ring_input_prod
 end
 
+module type S = sig
+  val write_prepare: Cstruct.t -> int32 * Cstruct.t
+
+  val write_commit: Cstruct.t -> int32 -> unit
+
+  val read_prepare: Cstruct.t -> int32 * Cstruct.t
+
+  val read_commit: Cstruct.t -> int32 -> unit
+
+  val unsafe_write: Cstruct.t -> string -> int -> int -> int
+  val unsafe_read: Cstruct.t -> string -> int -> int -> int
+end
+
+
 module Pipe(RW: RW) = struct
   let write_prepare t =
     let output = RW.get_ring_output t in
@@ -392,14 +406,8 @@ module type Bidirectional_byte_stream = sig
   val init: Cstruct.t -> unit
   val to_debug_map: Cstruct.t -> (string * string) list
 
-  module Front : sig
-    val unsafe_write: Cstruct.t -> string -> int -> int -> int
-    val unsafe_read: Cstruct.t -> string -> int -> int -> int
-  end
-  module Back : sig
-    val unsafe_write: Cstruct.t -> string -> int -> int -> int
-    val unsafe_read: Cstruct.t -> string -> int -> int -> int
-  end
+  module Front : S
+  module Back : S
 end
 
 let zero t =
