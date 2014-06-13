@@ -1,3 +1,6 @@
+trunk (unreleased)
+* [xen]: add a prepare/commit interface to control when xenstore/console data is consumed
+
 1.0.0 (2013-12-07):
 * Standardize indentation by running through ocp-indent.
 * Improve ocamldoc for `Ring` module.
