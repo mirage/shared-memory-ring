@@ -327,6 +327,9 @@ module type S = sig
   module Reader: READABLE
   module Writer: WRITABLE
 
+  val write: Cstruct.t -> string -> int -> int -> int
+  val read: Cstruct.t -> string -> int -> int -> int
+
   val unsafe_write: Cstruct.t -> string -> int -> int -> int
   val unsafe_read: Cstruct.t -> string -> int -> int -> int
 end
@@ -397,7 +400,7 @@ module Pipe(RW: RW) = struct
   end
 
   (* Backwards compatible string interface: *)
-  let unsafe_read t buf ofs len =
+  let read t buf ofs len =
     let seq, frag = Reader.read t in
     let data_available = Cstruct.len frag in
     let can_read = min len data_available in
@@ -405,7 +408,7 @@ module Pipe(RW: RW) = struct
     Reader.advance t Int32.(add seq (of_int can_read));
     can_read
 
-  let unsafe_write t buf ofs len =
+  let write t buf ofs len =
     let seq, frag = Writer.write t in
     let free_space = Cstruct.len frag in
     let can_write = min len free_space in
@@ -419,8 +422,13 @@ module Pipe(RW: RW) = struct
     then n + (repeat f from buf (ofs + n) (len - n))
     else n
 
-  let unsafe_read = repeat unsafe_read
-  let unsafe_write = repeat unsafe_write
+  let read = repeat read
+  let write = repeat write
+
+  (* These are provided for backwards compat. Note they used to be unsafe
+     but are now safe (see #10) *)
+  let unsafe_read = read
+  let unsafe_write = write
 end
 
 module type Bidirectional_byte_stream = sig

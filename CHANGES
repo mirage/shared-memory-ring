@@ -1,5 +1,6 @@
-trunk (unreleased)
+1.1.0 (2014-07-16)
 * [xen]: add a prepare/commit interface to control when xenstore/console data is consumed
+* [xen]: add read and write to complement unsafe_read and unsafe_write
 
 1.0.0 (2013-12-07):
 * Standardize indentation by running through ocp-indent.
