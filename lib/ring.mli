@@ -151,24 +151,48 @@ end
 
 module Reverse: functor(RW: RW) -> RW
 
+module type STREAM = sig
+
+  type stream = Cstruct.t
+
+  type position = int32
+  (** A stream remains at a fixed position so that repeated calls to [read]
+      or [write] process the same data.
+      To advance the stream call [advance new_position] *)
+
+  val advance: stream -> position -> unit
+  (** [advanced stream position] declares that we have processed all data up to
+      [position] and therefore any buffers may be recycled. *)
+end
+
+module type READABLE = sig
+  (** A stream of readable items *)
+
+  include STREAM
+
+  val read: stream -> (position * Cstruct.t)
+  (** [read stream] returns the data at the current stream position. Note this
+      function does not advance the stream, so repeated calls should return
+      the same data.
+      To advance the stream, call [advance position]. *)
+
+end
+
+module type WRITABLE = sig
+  (** A stream of writable items *)
+
+  include STREAM
+
+  val write: stream -> (position * Cstruct.t)
+  (** [write stream item] returns writable buffers at the current position.
+      This function does not advance the stream, so multiple calls will write
+      at the same position. To advance the stream, call [advance position] *)
+end
+
+
 module type S = sig
-  val write_prepare: Cstruct.t -> int32 * Cstruct.t
-  (** [write_prepare ring] returns [(seq,buffer)] where [buffer]
-      is the next available contiguous free space area, and [seq]
-      is the sequence number of the first byte of [buffer] *)
-
-  val write_commit: Cstruct.t -> int32 -> unit
-  (** [write_commit ring seq] signals that data up to [seq] should
-      be exposed to the other end. *)
-
-  val read_prepare: Cstruct.t -> int32 * Cstruct.t
-  (** [read_prepare ring] returns [(seq,buffer]) where [buffer]
-      is the next available contiguous chunk of readable data,
-      and [seq] is the sequence number of the first byte of [buffer] *)
-
-  val read_commit: Cstruct.t -> int32 -> unit
-  (** [read_commit ring seq] signals that data up to [seq] has
-      been processed and may be overwritten with fresh data. *)
+  module Reader: READABLE
+  module Writer: WRITABLE
 
   val unsafe_write: Cstruct.t -> string -> int -> int -> int
   val unsafe_read: Cstruct.t -> string -> int -> int -> int
