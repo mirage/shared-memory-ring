@@ -194,6 +194,20 @@ module type S = sig
   module Reader: READABLE
   module Writer: WRITABLE
 
+  (* These functions are suitable if you don't need to reconnect after a crash
+     and you don't mind always copying into strings.
+     If you do need to reconnect or need to avoid copying, use the READER and
+     WRITABLE signatures above *)
+
+  val write: Cstruct.t -> string -> int -> int -> int
+  (** [write stream buf ofs len] writes up to [len] bytes from [buf] at [ofs]
+      to [stream]. If this returns short it means EOF *)
+
+  val read: Cstruct.t -> string -> int -> int -> int
+  (** [read stream buf ofs len] reads up to [len] bytes to [buf] at [ofs] from
+      [stream]. If this returns short it means EOF *)
+
+  (* These functions are deprecated (and nolonger unsafe, see #10) *)
   val unsafe_write: Cstruct.t -> string -> int -> int -> int
   val unsafe_read: Cstruct.t -> string -> int -> int -> int
 end
