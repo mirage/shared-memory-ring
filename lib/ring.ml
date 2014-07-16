@@ -163,7 +163,7 @@ module Rpc = struct
       else begin
         sring_set_rsp_event t.sring (t.rsp_cons + 1);
         has_unconsumed_responses t
-      end 
+      end
 
     let next_req_id t =
       let s = t.req_prod_pvt in
@@ -221,7 +221,7 @@ module Rpc = struct
       if req < rsp then (req > 0) else (rsp > 0)
 
     let push_responses t =
-      sring_push_responses t.sring t.rsp_prod_pvt 
+      sring_push_responses t.sring t.rsp_prod_pvt
 
     let push_responses_and_check_notify t =
       let old_idx = sring_rsp_prod t.sring in
@@ -307,58 +307,111 @@ module Reverse(RW: RW) = struct
   let set_ring_output_prod = RW.set_ring_input_prod
 end
 
-module Pipe(RW: RW) = struct
-  let unsafe_write t buf ofs len =
-    let output = RW.get_ring_output t in
-    let output_length = length output in
-    (* Remember: the producer and consumer indices can be >> output_length *)
-    let cons = Int32.to_int (RW.get_ring_output_cons t) in
-    let prod = Int32.to_int (RW.get_ring_output_prod t) in
-    memory_barrier ();
-    (* 0 <= cons', prod' <= output_length *)
-    let cons' =
-      let x = cons mod output_length in
-      if x < 0 then x + output_length else x
-    and prod' =
-      let x = prod mod output_length in
-      if x < 0 then x + output_length else x in
-    let free_space =
-      if prod - cons >= output_length
-      then 0
-      else
-      if prod' >= cons'
-      then output_length - prod' (* in this write, fill to the end *)
-      else cons' - prod' in
-    let can_write = min len free_space in
-    Cstruct.blit_from_string buf ofs output prod' can_write;
-    memory_barrier ();
-    RW.set_ring_output_prod t (Int32.of_int (prod + can_write));
-    can_write
+module type STREAM = sig
+  type stream = Cstruct.t
+  type position = int32
+  val advance: stream -> position -> unit
+end
 
+module type READABLE = sig
+  include STREAM
+  val read: stream -> (position * Cstruct.t)
+end
+
+module type WRITABLE = sig
+  include STREAM
+  val write: stream -> (position * Cstruct.t)
+end
+
+module type S = sig
+  module Reader: READABLE
+  module Writer: WRITABLE
+
+  val unsafe_write: Cstruct.t -> string -> int -> int -> int
+  val unsafe_read: Cstruct.t -> string -> int -> int -> int
+end
+
+
+module Pipe(RW: RW) = struct
+  module Writer = struct
+    type stream = Cstruct.t
+    type position = int32
+
+    let write t =
+      let output = RW.get_ring_output t in
+      let output_length = length output in
+      (* Remember: the producer and consumer indices can be >> output_length *)
+      let cons = Int32.to_int (RW.get_ring_output_cons t) in
+      let prod = Int32.to_int (RW.get_ring_output_prod t) in
+      memory_barrier ();
+      (* 0 <= cons', prod' <= output_length *)
+      let cons' =
+        let x = cons mod output_length in
+        if x < 0 then x + output_length else x
+      and prod' =
+        let x = prod mod output_length in
+        if x < 0 then x + output_length else x in
+      let free_space =
+        if prod - cons >= output_length
+        then 0
+        else
+        if prod' >= cons'
+        then output_length - prod' (* in this write, fill to the end *)
+        else cons' - prod' in
+      Int32.of_int prod, Cstruct.sub output prod' free_space
+
+    let advance t prod' =
+      memory_barrier ();
+      let prod = RW.get_ring_output_prod t in
+      RW.set_ring_output_prod t (max prod' prod)
+  end
+
+  module Reader = struct
+    type stream = Cstruct.t
+    type position = int32
+
+    let read t =
+      let input = RW.get_ring_input t in
+      let input_length = length input in
+      let cons = Int32.to_int (RW.get_ring_input_cons t) in
+      let prod = Int32.to_int (RW.get_ring_input_prod t) in
+      memory_barrier ();
+      let cons' =
+        let x = cons mod input_length in
+        if x < 0 then x + input_length else x
+      and prod' =
+        let x = prod mod input_length in
+        if x < 0 then x + input_length else x in
+      let data_available =
+        if prod = cons
+        then 0
+        else
+        if prod' > cons'
+        then prod' - cons'
+        else input_length - cons' in (* read up to the last byte in the ring *)
+      Int32.of_int cons, Cstruct.sub input cons' data_available
+
+    let advance t (cons':int32) =
+      let cons = RW.get_ring_input_cons t in
+      RW.set_ring_input_cons t (max cons' cons)
+  end
+
+  (* Backwards compatible string interface: *)
   let unsafe_read t buf ofs len =
-    let input = RW.get_ring_input t in
-    let input_length = length input in
-    let cons = Int32.to_int (RW.get_ring_input_cons t) in
-    let prod = Int32.to_int (RW.get_ring_input_prod t) in
-    memory_barrier ();
-    let cons' =
-      let x = cons mod input_length in
-      if x < 0 then x + input_length else x
-    and prod' =
-      let x = prod mod input_length in
-      if x < 0 then x + input_length else x in
-    let data_available =
-      if prod = cons
-      then 0
-      else
-      if prod' > cons'
-      then prod' - cons'
-      else input_length - cons' in (* read up to the last byte in the ring *)
+    let seq, frag = Reader.read t in
+    let data_available = Cstruct.len frag in
     let can_read = min len data_available in
-    Cstruct.blit_to_string input cons' buf ofs can_read;
-    memory_barrier (); (* XXX: not a write_memory_barrier? *)
-    RW.set_ring_input_cons t (Int32.of_int (cons + can_read));
+    Cstruct.blit_to_string frag 0 buf ofs can_read;
+    Reader.advance t Int32.(add seq (of_int can_read));
     can_read
+
+  let unsafe_write t buf ofs len =
+    let seq, frag = Writer.write t in
+    let free_space = Cstruct.len frag in
+    let can_write = min len free_space in
+    Cstruct.blit_from_string buf ofs frag 0 can_write;
+    Writer.advance t Int32.(add seq (of_int can_write));
+    can_write
 
   let rec repeat f from buf ofs len =
     let n = f from buf ofs len in
@@ -374,14 +427,8 @@ module type Bidirectional_byte_stream = sig
   val init: Cstruct.t -> unit
   val to_debug_map: Cstruct.t -> (string * string) list
 
-  module Front : sig
-    val unsafe_write: Cstruct.t -> string -> int -> int -> int
-    val unsafe_read: Cstruct.t -> string -> int -> int -> int
-  end
-  module Back : sig
-    val unsafe_write: Cstruct.t -> string -> int -> int -> int
-    val unsafe_read: Cstruct.t -> string -> int -> int -> int
-  end
+  module Front : S
+  module Back : S
 end
 
 let zero t =
