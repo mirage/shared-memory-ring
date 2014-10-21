@@ -37,7 +37,7 @@ module Front = struct
     if Ring.Rpc.Front.get_free_requests t.ring > 0 then
       return (Ring.Rpc.Front.next_req_id t.ring)
     else begin
-      let th, u = Lwt.task () in
+      let th, u = MProf.Trace.named_task "ring.get_free_slot" in
       let node = Lwt_sequence.add_r u t.waiters in
       Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
       lwt () = th in
@@ -46,6 +46,7 @@ module Front = struct
 
   let poll t respfn =
     Ring.Rpc.Front.ack_responses t.ring (fun slot ->
+        MProf.Trace.label "ring.poll ack_response";
         let id, resp = respfn slot in
         try
           let u = Hashtbl.find t.wakers id in
@@ -66,7 +67,7 @@ module Front = struct
   let write t reqfn =
     lwt slot_id = get_free_slot t in
     let slot = Ring.Rpc.Front.slot t.ring slot_id in
-    let th, u = Lwt.task () in
+    let th, u = MProf.Trace.named_task "ring.write" in
     let id = reqfn slot in
     Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
     Hashtbl.add t.wakers id u;
