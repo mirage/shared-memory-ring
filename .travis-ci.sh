@@ -1,6 +1,5 @@
 #!/bin/bash -ex
 # OPAM packages needed to build tests.
-OPAM_PACKAGES="cstruct lwt ounit"
 
 function setup_arm_chroot {
   echo Setting up qemu chroot for ARM
@@ -53,6 +52,8 @@ else
     4.00.1,1.1.0) ppa=avsm/ocaml40+opam11 ;;
     4.01.0,1.0.0) ppa=avsm/ocaml41+opam10 ;;
     4.01.0,1.1.0) ppa=avsm/ocaml41+opam11 ;;
+    4.01.0,1.2.0) ppa=avsm/ocaml41+opam12 ;;
+    4.02.0,1.2.0) ppa=avsm/ocaml42+opam12 ;;
     *) echo Unknown $OCAML_VERSION,$OPAM_VERSION; exit 1 ;;
     esac
     echo "yes" | sudo add-apt-repository ppa:$ppa
@@ -70,9 +71,8 @@ opam --version
 opam --git-version
 
 opam init 
-
-opam install ${OPAM_PACKAGES}
-
 eval `opam config env`
+opam pin add shared-memory-ring .
+
 make
 make test
