@@ -37,7 +37,7 @@ Library lwt_shared_memory_ring
   Findlibname:        lwt
   Findlibparent:      shared_memory_ring
   Modules:            Lwt_ring
-  BuildDepends:       shared-memory-ring, lwt, lwt.syntax
+  BuildDepends:       shared-memory-ring, lwt, lwt.syntax, mirage-profile
 
 Executable ring_test
   CompiledObject:     best
