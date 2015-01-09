@@ -61,6 +61,12 @@ module Front : sig
 
   val shutdown : ('a, 'b) t -> unit
 
+  val wait_for_free : ('a, 'b) t -> int -> unit Lwt.t
+  (** [wait_for_free frontend n] waits until at least [n] slots are free.
+   * It doesn't reserve them, so you'll probably need to use your own mutex
+   * around this call. Requests are handled in order, so even large requests
+   * will eventually be served. *)
+
   val to_string : ('a,'b) t -> string
   (** [to_string t] returns debug-printable description of the ring
       metadata *)
