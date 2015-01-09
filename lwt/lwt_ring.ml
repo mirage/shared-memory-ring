@@ -44,6 +44,18 @@ module Front = struct
       get_free_slot t
     end 
 
+  let rec wait_for_free t n =
+    if Ring.Rpc.Front.get_free_requests t.ring >= n then
+      return ()
+    else begin
+      assert (n <= Ring.Rpc.Front.nr_ents t.ring);
+      let th, u = MProf.Trace.named_task "ring.wait_for_free" in
+      let node = Lwt_sequence.add_r u t.waiters in
+      Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
+      lwt () = th in
+      wait_for_free t n
+    end
+
   let poll t respfn =
     Ring.Rpc.Front.ack_responses t.ring (fun slot ->
         MProf.Trace.label "ring.poll ack_response";
