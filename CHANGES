@@ -1,7 +1,10 @@
+1.1.2 (2015-04-12)
+* Do not make the installed library depend on `camlp4` (via `lwt.syntax`).
+
 1.1.1 (2015-01-09)
 * add profiling/tracing support
-* add a "Front.wait_for_free" function to wait for n free slots
-* add opam file
+* add a `Front.wait_for_free` function to wait for n free slots
+* add `opam` file
 
 1.1.0 (2014-07-16)
 * [xen]: add a prepare/commit interface to control when xenstore/console data is consumed
