@@ -51,4 +51,3 @@ uninstall:
 reinstall: setup.bin
 	@ocamlfind remove shared-memory-ring || true
 	@./setup.bin -reinstall
-
