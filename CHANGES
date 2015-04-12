@@ -1,5 +1,6 @@
 1.1.2 (2015-04-12)
 * Do not make the installed library depend on `camlp4` (via `lwt.syntax`).
+* Use centralised Travis scripts and modernise OPAM file.
 
 1.1.1 (2015-01-09)
 * add profiling/tracing support
