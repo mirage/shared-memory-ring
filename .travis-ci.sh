@@ -35,7 +35,7 @@ function setup_arm_chroot {
   sudo touch $DIR/.chroot_is_done
   sudo chroot $DIR bash -c "cd $TRAVIS_BUILD_DIR && ./.travis-ci.sh"
   exit 0
-} 
+}
 
 if [ -e "/.chroot_is_done" ]; then
   # we are in the arm chroot
@@ -70,9 +70,7 @@ echo OPAM versions
 opam --version
 opam --git-version
 
-opam init 
+opam init
 eval `opam config env`
 opam pin add shared-memory-ring .
-
-make
-make test
+OPAMBUILDTEST=1 opam reinstall shared-memory-ring
