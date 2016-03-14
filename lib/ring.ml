@@ -44,13 +44,15 @@ module Rpc = struct
   };
 *)
   (* (* It's unsafe to use these since they use multi-byte load/stores *)
-     cstruct ring_hdr {
-     uint32_t req_prod;
-     uint32_t req_event;
-     uint32_t rsp_prod;
-     uint32_t rsp_event;
-     uint64_t stuff
-     } as little_endian
+     [%%cstruct
+     type ring_hdr = {
+       req_prod: uint32_t;
+       req_event: uint32_t;
+       rsp_prod: uint32_t;
+       rsp_event: uint32_t;
+       stuff: uint64_t;
+     } [@@little_endian]
+     ]
   *)
 
   (* offsets in the header: *)

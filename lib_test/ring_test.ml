@@ -33,9 +33,9 @@ let compare_bufs a b =
 	done
 
 let bigarray_to_string a =
-	let s = String.make (Bigarray.Array1.dim a) '\000' in
+	let s = Bytes.make (Bigarray.Array1.dim a) '\000' in
 	for i = 0 to Bigarray.Array1.dim a - 1 do
-		s.[i] <- Bigarray.Array1.unsafe_get a i
+		Bytes.set s i (Bigarray.Array1.unsafe_get a i)
 	done;
 	s
 
@@ -72,15 +72,16 @@ let xenstore_hello () =
 			()
 		)
 
-cstruct ring {
-	uint8_t output[1024];
-	uint8_t input[1024];
-	uint32_t output_cons;
-	uint32_t output_prod;
-	uint32_t input_cons;
-	uint32_t input_prod
-} as little_endian
-
+[%%cstruct
+type ring = {
+	output: uint8_t [@len 1024];
+	input: uint8_t [@len 1024];
+	output_cons: uint32_t;
+	output_prod: uint32_t;
+	input_cons: uint32_t;
+	input_prod: uint32_t;
+} [@@little_endian]
+]
 
 let check_signed_unsigned_write () =
 	(* Check for errors performing comparison across int32 max_int *)

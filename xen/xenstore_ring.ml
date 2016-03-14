@@ -22,16 +22,18 @@ module Ring = struct
 	let of_buf t = t
 	module Layout = struct
 		(* memory layout from the frontend's point of view *)
-		cstruct ring {
-			uint8_t output[1024];
-			uint8_t input[1024]
+		[%%cstruct
+		type ring = {
+			output: uint8_t [@len 1024];
+			input: uint8_t [@len 1024];
 			(* (* unsafe to use these as they produce multi byte load/stores *)
-			uint32_t output_cons;
-			uint32_t output_prod;
-			uint32_t input_cons;
-			uint32_t input_prod
+			output_cons: uint32_t;
+			output_prod: uint32_t;
+			input_cons: uint32_t;
+			input_prod: uint32_t;
 			*)
-		} as little_endian
+		} [@@little_endian]
+		]
 		let _output_cons = 2048
 		let _output_prod = _output_cons + 4
 		let _input_cons  = _output_prod + 4

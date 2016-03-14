@@ -12,7 +12,7 @@ Library shared_memory_ring
   Path:               lib
   Findlibname:        shared-memory-ring
   Modules:            Ring
-  BuildDepends:       cstruct (>= 0.6.0), cstruct.syntax
+  BuildDepends:       cstruct (>= 0.7.1)
   CSources:           barrier_stubs.c, barrier.h
 
 Library console_ring
@@ -21,7 +21,7 @@ Library console_ring
   Findlibname:        console
   Findlibparent:      shared_memory_ring
   Modules:            Console_ring
-  BuildDepends:       shared-memory-ring
+  BuildDepends:       shared-memory-ring, cstruct (>= 1.9.0), cstruct.ppx
 
 Library xenstore_ring
   CompiledObject:     best
@@ -37,7 +37,7 @@ Library lwt_shared_memory_ring
   Findlibname:        lwt
   Findlibparent:      shared_memory_ring
   Modules:            Lwt_ring
-  BuildDepends:       shared-memory-ring, lwt, lwt.syntax, mirage-profile
+  BuildDepends:       shared-memory-ring, lwt, mirage-profile
 
 Executable ring_test
   CompiledObject:     best

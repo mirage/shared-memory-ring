@@ -55,7 +55,8 @@ let one_request_response () =
   assert_equal ~msg:"poll" ~printer:string_of_bool true (!replied);
 
   assert_equal ~msg:"more_to_do" ~printer:string_of_bool false (Ring.Rpc.Back.more_to_do back);
-  lwt () = Lwt.choose [ Lwt_unix.sleep 5.; request_th ] in
+  Lwt.choose [ Lwt_unix.sleep 5.; request_th ]
+  >>= fun () ->
   assert_equal ~msg:"is_sleeping" ~printer:string_of_bool false (Lwt.is_sleeping request_th);
   return ()
 
