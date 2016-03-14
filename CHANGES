@@ -1,3 +1,10 @@
+1.2.0 (2016-03-14)
+* opam: ounit is a test dependency
+* add LICENSE file
+* remove dependency on cstruct.syntax: we use cstruct.ppx instead
+  Note: this means we need OCaml 4.02
+* remove dependency on lwt.syntax
+
 1.1.1 (2015-01-09)
 * add profiling/tracing support
 * add a "Front.wait_for_free" function to wait for n free slots
