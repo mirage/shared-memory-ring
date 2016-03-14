@@ -33,9 +33,9 @@ let compare_bufs a b =
 	done
 
 let bigarray_to_string a =
-	let s = String.make (Bigarray.Array1.dim a) '\000' in
+	let s = Bytes.make (Bigarray.Array1.dim a) '\000' in
 	for i = 0 to Bigarray.Array1.dim a - 1 do
-		s.[i] <- Bigarray.Array1.unsafe_get a i
+		Bytes.set s i (Bigarray.Array1.unsafe_get a i)
 	done;
 	s
 
