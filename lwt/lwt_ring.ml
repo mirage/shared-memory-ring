@@ -40,7 +40,7 @@ module Front = struct
       let th, u = MProf.Trace.named_task "ring.get_free_slot" in
       let node = Lwt_sequence.add_r u t.waiters in
       Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-      lwt () = th in
+      th >>= fun () ->
       get_free_slot t
     end 
 
@@ -52,7 +52,7 @@ module Front = struct
       let th, u = MProf.Trace.named_task "ring.wait_for_free" in
       let node = Lwt_sequence.add_r u t.waiters in
       Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-      lwt () = th in
+      th >>= fun () ->
       wait_for_free t n
     end
 
@@ -77,7 +77,8 @@ module Front = struct
     |Some u -> Lwt.wakeup u ()
 
   let write t reqfn =
-    lwt slot_id = get_free_slot t in
+    get_free_slot t
+    >>= fun slot_id ->
     let slot = Ring.Rpc.Front.slot t.ring slot_id in
     let th, u = MProf.Trace.named_task "ring.write" in
     let id = reqfn slot in
@@ -90,12 +91,14 @@ module Front = struct
     then notifyfn ()
 
   let push_request_and_wait t notifyfn reqfn =
-    lwt th = write t reqfn in
+    write t reqfn
+    >>= fun th ->
     push t notifyfn;
     th
 
   let push_request_async t notifyfn reqfn freefn =
-    lwt th = write t reqfn in
+    write t reqfn
+    >>= fun th ->
     push t notifyfn;
     let _ = freefn th in
     return ()
