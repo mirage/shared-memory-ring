@@ -21,7 +21,7 @@ Library console_ring
   Findlibname:        console
   Findlibparent:      shared_memory_ring
   Modules:            Console_ring
-  BuildDepends:       shared-memory-ring
+  BuildDepends:       shared-memory-ring, cstruct (>= 1.9.0), cstruct.ppx
 
 Library xenstore_ring
   CompiledObject:     best
