@@ -12,7 +12,7 @@ Library shared_memory_ring
   Path:               lib
   Findlibname:        shared-memory-ring
   Modules:            Ring
-  BuildDepends:       cstruct (>= 0.6.0), cstruct.syntax
+  BuildDepends:       cstruct (>= 0.7.1)
   CSources:           barrier_stubs.c, barrier.h
 
 Library console_ring
