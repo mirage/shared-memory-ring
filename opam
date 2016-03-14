@@ -17,8 +17,10 @@ remove:  ["ocamlfind" "remove" "shared-memory-ring"]
 
 depends: [
   "cstruct" {>= "0.7.1"}
+  "ppx_tools"
   "lwt"
   "ocamlfind"
   "mirage-profile"
   "ounit" {test}
 ]
+available: [ ocaml-version >= "4.02.0" ]
