@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 9447015234f577befb6acc740b19c235)
+# DO NOT EDIT (digest: f6c1f154615f4f3216b14f0f5f5421c9)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -18,28 +18,24 @@ true: annot, bin_annot
 "lib/shared_memory_ring.cmxs": use_shared_memory_ring
 <lib/shared_memory_ring.{cma,cmxa}>: use_libshared_memory_ring_stubs
 <lib/*.ml{,i,y}>: pkg_cstruct
-<lib/*.ml{,i,y}>: pkg_cstruct.syntax
 "lib/barrier_stubs.c": pkg_cstruct
-"lib/barrier_stubs.c": pkg_cstruct.syntax
 # Library console_ring
 "xen/console_ring.cmxs": use_console_ring
+<xen/*.ml{,i,y}>: pkg_cstruct.ppx
 # Library xenstore_ring
 "xen/xenstore_ring.cmxs": use_xenstore_ring
 <xen/*.ml{,i,y}>: pkg_cstruct
-<xen/*.ml{,i,y}>: pkg_cstruct.syntax
 <xen/*.ml{,i,y}>: use_shared_memory_ring
 # Library lwt_shared_memory_ring
 "lwt/lwt_shared_memory_ring.cmxs": use_lwt_shared_memory_ring
 <lwt/*.ml{,i,y}>: pkg_cstruct
-<lwt/*.ml{,i,y}>: pkg_cstruct.syntax
 <lwt/*.ml{,i,y}>: pkg_lwt
-<lwt/*.ml{,i,y}>: pkg_lwt.syntax
 <lwt/*.ml{,i,y}>: pkg_mirage-profile
 <lwt/*.ml{,i,y}>: use_shared_memory_ring
 # Executable ring_test
 <lib_test/ring_test.{native,byte}>: use_libring_test_stubs
 <lib_test/ring_test.{native,byte}>: pkg_cstruct
-<lib_test/ring_test.{native,byte}>: pkg_cstruct.syntax
+<lib_test/ring_test.{native,byte}>: pkg_cstruct.ppx
 <lib_test/ring_test.{native,byte}>: pkg_lwt
 <lib_test/ring_test.{native,byte}>: pkg_lwt.unix
 <lib_test/ring_test.{native,byte}>: pkg_oUnit
@@ -47,7 +43,7 @@ true: annot, bin_annot
 <lib_test/ring_test.{native,byte}>: use_shared_memory_ring
 <lib_test/ring_test.{native,byte}>: use_xenstore_ring
 <lib_test/*.ml{,i,y}>: pkg_cstruct
-<lib_test/*.ml{,i,y}>: pkg_cstruct.syntax
+<lib_test/*.ml{,i,y}>: pkg_cstruct.ppx
 <lib_test/*.ml{,i,y}>: pkg_lwt
 <lib_test/*.ml{,i,y}>: pkg_lwt.unix
 <lib_test/*.ml{,i,y}>: pkg_oUnit
@@ -55,7 +51,7 @@ true: annot, bin_annot
 <lib_test/*.ml{,i,y}>: use_shared_memory_ring
 <lib_test/*.ml{,i,y}>: use_xenstore_ring
 "lib_test/old_ring_stubs.c": pkg_cstruct
-"lib_test/old_ring_stubs.c": pkg_cstruct.syntax
+"lib_test/old_ring_stubs.c": pkg_cstruct.ppx
 "lib_test/old_ring_stubs.c": pkg_lwt
 "lib_test/old_ring_stubs.c": pkg_lwt.unix
 "lib_test/old_ring_stubs.c": pkg_oUnit
@@ -65,18 +61,14 @@ true: annot, bin_annot
 <lib_test/ring_test.{native,byte}>: custom
 # Executable lwt_test
 <lwt_test/lwt_test.{native,byte}>: pkg_cstruct
-<lwt_test/lwt_test.{native,byte}>: pkg_cstruct.syntax
 <lwt_test/lwt_test.{native,byte}>: pkg_lwt
-<lwt_test/lwt_test.{native,byte}>: pkg_lwt.syntax
 <lwt_test/lwt_test.{native,byte}>: pkg_lwt.unix
 <lwt_test/lwt_test.{native,byte}>: pkg_mirage-profile
 <lwt_test/lwt_test.{native,byte}>: pkg_oUnit
 <lwt_test/lwt_test.{native,byte}>: use_lwt_shared_memory_ring
 <lwt_test/lwt_test.{native,byte}>: use_shared_memory_ring
 <lwt_test/*.ml{,i,y}>: pkg_cstruct
-<lwt_test/*.ml{,i,y}>: pkg_cstruct.syntax
 <lwt_test/*.ml{,i,y}>: pkg_lwt
-<lwt_test/*.ml{,i,y}>: pkg_lwt.syntax
 <lwt_test/*.ml{,i,y}>: pkg_lwt.unix
 <lwt_test/*.ml{,i,y}>: pkg_mirage-profile
 <lwt_test/*.ml{,i,y}>: pkg_oUnit
@@ -85,17 +77,13 @@ true: annot, bin_annot
 <lwt_test/lwt_test.{native,byte}>: custom
 # Executable client
 <examples/client.{native,byte}>: pkg_cstruct
-<examples/client.{native,byte}>: pkg_cstruct.syntax
 <examples/client.{native,byte}>: pkg_lwt
-<examples/client.{native,byte}>: pkg_lwt.syntax
 <examples/client.{native,byte}>: pkg_lwt.unix
 <examples/client.{native,byte}>: pkg_mirage-profile
 <examples/client.{native,byte}>: use_lwt_shared_memory_ring
 <examples/client.{native,byte}>: use_shared_memory_ring
 <examples/*.ml{,i,y}>: pkg_cstruct
-<examples/*.ml{,i,y}>: pkg_cstruct.syntax
 <examples/*.ml{,i,y}>: pkg_lwt
-<examples/*.ml{,i,y}>: pkg_lwt.syntax
 <examples/*.ml{,i,y}>: pkg_lwt.unix
 <examples/*.ml{,i,y}>: pkg_mirage-profile
 <examples/*.ml{,i,y}>: use_lwt_shared_memory_ring
@@ -103,10 +91,6 @@ true: annot, bin_annot
 <examples/client.{native,byte}>: custom
 # OASIS_STOP
 true: annot
-<*/*.ml{,i}>: syntax_camlp4o
-<lib/ring>: pkg_cstruct.syntax
-<lwt/lwt_ring>: pkg_lwt.syntax
-<lwt_test/lwt_test>: pkg_lwt.syntax
 <lib>: include
 <lwt>: include
 <xen>: include
