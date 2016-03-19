@@ -1,7 +1,9 @@
 *~
 #*
 *#
+.*.swp
 _build/
+*.byte
 *.native
 *.bin
 setup.data
