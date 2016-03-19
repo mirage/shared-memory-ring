@@ -1,40 +1,54 @@
-.PHONY: all clean install build
-all: build doc
-
-NAME=shared-memory-ring
-J=4
-
-export OCAMLRUNPARAM=b
-
-TESTS ?= --enable-tests
+CONFIGUREFLAGS ?= --enable-tests
 ifeq "$(MIRAGE_OS)" "xen"
-TESTS := --disable-tests
+	CONFIGUREFLAGS := --disable-tests
 endif
 
+# OASIS_START
+# DO NOT EDIT (digest: a3c674b4239234cbbe53afe090018954)
 
-setup.bin: setup.ml
-	@ocamlopt.opt -o $@ $< || ocamlopt -o $@ $< || ocamlc -o $@ $<
-	@rm -f setup.cmx setup.cmi setup.o setup.cmo
+SETUP = ocaml setup.ml
 
-setup.data: setup.bin
-	@./setup.bin -configure $(TESTS)
+build: setup.data
+	$(SETUP) -build $(BUILDFLAGS)
 
-build: setup.data setup.bin
-	@./setup.bin -build -j $(J)
+doc: setup.data build
+	$(SETUP) -doc $(DOCFLAGS)
 
-doc: setup.data setup.bin
-	@./setup.bin -doc -j $(J)
+test: setup.data build
+	$(SETUP) -test $(TESTFLAGS)
 
-install: setup.bin
-	@./setup.bin -install
+all:
+	$(SETUP) -all $(ALLFLAGS)
 
-test: setup.bin build
-	@./setup.bin -test
+install: setup.data
+	$(SETUP) -install $(INSTALLFLAGS)
 
-reinstall: setup.bin
-	@ocamlfind remove $(NAME) || true
-	@./setup.bin -reinstall
+uninstall: setup.data
+	$(SETUP) -uninstall $(UNINSTALLFLAGS)
+
+reinstall: setup.data
+	$(SETUP) -reinstall $(REINSTALLFLAGS)
 
 clean:
-	@ocamlbuild -clean
-	@rm -f setup.data setup.log setup.bin
+	$(SETUP) -clean $(CLEANFLAGS)
+
+distclean:
+	$(SETUP) -distclean $(DISTCLEANFLAGS)
+
+setup.data:
+	$(SETUP) -configure $(CONFIGUREFLAGS)
+
+configure:
+	$(SETUP) -configure $(CONFIGUREFLAGS)
+
+.PHONY: build doc test all install uninstall reinstall clean distclean configure
+
+# OASIS_STOP
+#
+uninstall:
+	$(SETUP) -uninstall $(UNINSTALLFLAGS)
+	ocamlfind remove shared-memory-ring || true
+reinstall: setup.bin
+	@ocamlfind remove shared-memory-ring || true
+	@./setup.bin -reinstall
+
