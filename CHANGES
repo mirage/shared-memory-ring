@@ -1,5 +1,6 @@
-1.3.0 (unreleased)
+1.3.0 (2015-03-19)
 * Use centralised Travis scripts and modernise OPAM file.
+* Add Windows support
 
 1.2.0 (2016-03-14)
 * opam: ounit is a test dependency
