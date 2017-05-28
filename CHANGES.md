@@ -1,3 +1,8 @@
+## 2.0.0 (2017-05-28)
+* Refactor the ocamlfind packages and opam packages into
+  - shared-memory-ring: all the portable code including the -xen definitions
+  - shared-memory-ring-lwt: the old shared-memory-ring.lwt
+
 ## 1.3.0 (2015-03-19)
 * Use centralised Travis scripts and modernise OPAM file.
 * Add Windows support
