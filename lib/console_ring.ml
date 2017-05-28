@@ -18,8 +18,6 @@
 open Ring
 
 module Ring = struct
-	type t = buf
-	let of_buf t = t
 	module Layout = struct
 		(* memory layout from the frontend's point of view *)
 		[%%cstruct
