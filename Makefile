@@ -1,53 +1,21 @@
-CONFIGUREFLAGS ?= --enable-tests
-ifeq "$(MIRAGE_OS)" "xen"
-	CONFIGUREFLAGS := --disable-tests
-endif
 
-# OASIS_START
-# DO NOT EDIT (digest: a3c674b4239234cbbe53afe090018954)
+.PHONY: build clean test
 
-SETUP = ocaml setup.ml
+build:
+	jbuilder build @install
 
-build: setup.data
-	$(SETUP) -build $(BUILDFLAGS)
+test:
+	jbuilder runtest
 
-doc: setup.data build
-	$(SETUP) -doc $(DOCFLAGS)
+install:
+	jbuilder install
 
-test: setup.data build
-	$(SETUP) -test $(TESTFLAGS)
+uninstall:
+	jbuilder uninstall
 
-all:
-	$(SETUP) -all $(ALLFLAGS)
-
-install: setup.data
-	$(SETUP) -install $(INSTALLFLAGS)
-
-uninstall: setup.data
-	$(SETUP) -uninstall $(UNINSTALLFLAGS)
-
-reinstall: setup.data
-	$(SETUP) -reinstall $(REINSTALLFLAGS)
+.PHONY: docker
+docker:
+	docker build -t xen-gnt .
 
 clean:
-	$(SETUP) -clean $(CLEANFLAGS)
-
-distclean:
-	$(SETUP) -distclean $(DISTCLEANFLAGS)
-
-setup.data:
-	$(SETUP) -configure $(CONFIGUREFLAGS)
-
-configure:
-	$(SETUP) -configure $(CONFIGUREFLAGS)
-
-.PHONY: build doc test all install uninstall reinstall clean distclean configure
-
-# OASIS_STOP
-#
-uninstall:
-	$(SETUP) -uninstall $(UNINSTALLFLAGS)
-	ocamlfind remove shared-memory-ring || true
-reinstall: setup.bin
-	@ocamlfind remove shared-memory-ring || true
-	@./setup.bin -reinstall
+	rm -rf _build
