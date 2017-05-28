@@ -23,7 +23,7 @@ let sub t off len = Cstruct.sub t off len
 
 let length t = Cstruct.len t
 
-external memory_barrier: unit -> unit = "caml_memory_barrier" "noalloc"
+external memory_barrier: unit -> unit = "caml_memory_barrier" [@@noalloc]
 
 (* [load_uint32 c byte_offset] returns an int containing the 32-bit
    word found at [byte_offset] read with a single load instruction. *)

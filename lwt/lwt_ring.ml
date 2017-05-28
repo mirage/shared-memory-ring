@@ -104,7 +104,7 @@ module Front = struct
     return ()
 
   let shutdown t =
-    Hashtbl.iter (fun id th ->
+    Hashtbl.iter (fun _id th ->
         Lwt.wakeup_exn th Shutdown
       ) t.wakers;
     (* Check for any sleepers waiting for free space *)
@@ -133,6 +133,4 @@ module Back = struct
     if Ring.Rpc.Back.push_responses_and_check_notify t.ring
     then notifyfn ()
 
-  let poll t fn =
-    Ring.Rpc.Back.ack_requests t.ring fn
 end
