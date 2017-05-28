@@ -1,28 +1,28 @@
-1.3.0 (2015-03-19)
+## 1.3.0 (2015-03-19)
 * Use centralised Travis scripts and modernise OPAM file.
 * Add Windows support
 
-1.2.0 (2016-03-14)
+## 1.2.0 (2016-03-14)
 * opam: ounit is a test dependency
 * add LICENSE file
 * remove dependency on cstruct.syntax: we use cstruct.ppx instead
   Note: this means we need OCaml 4.02
 * remove dependency on lwt.syntax
 
-1.1.1 (2015-01-09)
+## 1.1.1 (2015-01-09)
 * add profiling/tracing support
 * add a "Front.wait_for_free" function to wait for n free slots
 * add opam file
 
-1.1.0 (2014-07-16)
+## 1.1.0 (2014-07-16)
 * [xen]: add a prepare/commit interface to control when xenstore/console data is consumed
 * [xen]: add read and write to complement unsafe_read and unsafe_write
 
-1.0.0 (2013-12-07):
+## 1.0.0 (2013-12-07):
 * Standardize indentation by running through ocp-indent.
 * Improve ocamldoc for `Ring` module.
 
-0.4.3 (2013-10-05):
+## 0.4.3 (2013-10-05):
 * Add Travis CI scripts.
 * Fix ARMv5 compilation.
 
