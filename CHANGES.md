@@ -1,3 +1,7 @@
+## 2.0.1 (2017-06-07)
+* Don't force clients to link against `cstruct.ppx`: this is the support code
+  for the PPX rewriter itself, and brings in the `compiler-libs` package etc.
+
 ## 2.0.0 (2017-05-28)
 * Refactor the ocamlfind packages and opam packages into
   - shared-memory-ring: all the portable code including the -xen definitions
