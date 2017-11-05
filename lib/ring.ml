@@ -330,10 +330,10 @@ module type S = sig
   module Writer: WRITABLE
 
   val write: Cstruct.t -> string -> int -> int -> int
-  val read: Cstruct.t -> string -> int -> int -> int
+  val read: Cstruct.t -> bytes -> int -> int -> int
 
   val unsafe_write: Cstruct.t -> string -> int -> int -> int
-  val unsafe_read: Cstruct.t -> string -> int -> int -> int
+  val unsafe_read: Cstruct.t -> bytes -> int -> int -> int
 end
 
 
@@ -406,7 +406,7 @@ module Pipe(RW: RW) = struct
     let seq, frag = Reader.read t in
     let data_available = Cstruct.len frag in
     let can_read = min len data_available in
-    Cstruct.blit_to_string frag 0 buf ofs can_read;
+    Cstruct.blit_to_bytes frag 0 buf ofs can_read;
     Reader.advance t Int32.(add seq (of_int can_read));
     can_read
 
