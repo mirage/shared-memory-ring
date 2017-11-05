@@ -4,3 +4,4 @@ script: bash -ex .travis-opam.sh
 env:
   - PACKAGE="shared-memory-ring-lwt" OCAML_VERSION=4.03 REVDEPS=true
   - PACKAGE="shared-memory-ring-lwt" OCAML_VERSION=4.02 REVDEPS=true
+  - PACKAGE="shared-memory-ring-lwt" OCAML_VERSION=4.06
