@@ -30,6 +30,10 @@ module Rpc : sig
       pretty-printing. [buf] should be a Cstruct.t comprising pre-allocated
       contiguous I/O pages. *)
 
+  val of_buf_no_init : buf:Cstruct.t -> idx_size:int -> name:string -> sring
+  (** [of_buf_no_init] is like [of_buf], but does not initialise the ring.
+      Use this if the other party has already initialised it. *)
+
   val to_summary_string : sring -> string
   (** [to_summary_string ring] is a printable single-line summary of the
       ring. *)

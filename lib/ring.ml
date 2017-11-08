@@ -76,8 +76,7 @@ module Rpc = struct
     name: string;     (* For pretty printing only *)
   }
 
-  let of_buf ~buf ~idx_size ~name =
-    initialise buf;
+  let of_buf_no_init ~buf ~idx_size ~name =
     let header_size = 4+4+4+4+48 in (* header bytes size of struct sring *)
     (* Round down to the nearest power of 2, so we can mask indices easily *)
     let round_down_to_nearest_2 x =
@@ -86,6 +85,10 @@ module Rpc = struct
     let free_bytes = length buf - header_size in
     let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
     { name; buf; idx_size; nr_ents; header_size }
+
+  let of_buf ~buf ~idx_size ~name =
+    initialise buf;
+    of_buf_no_init ~buf ~idx_size ~name
 
   let to_summary_string t =
     Printf.sprintf "ring %s header_size = %d; index slot size = %d; number of entries = %d" t.name t.header_size t.idx_size t.nr_ents
