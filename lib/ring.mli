@@ -199,7 +199,7 @@ module type S = sig
      If you do need to reconnect or need to avoid copying, use the READER and
      WRITABLE signatures above *)
 
-  val write: Cstruct.t -> string -> int -> int -> int
+  val write: Cstruct.t -> bytes -> int -> int -> int
   (** [write stream buf ofs len] writes up to [len] bytes from [buf] at [ofs]
       to [stream]. If this returns short it means EOF *)
 
@@ -208,7 +208,7 @@ module type S = sig
       [stream]. If this returns short it means EOF *)
 
   (* These functions are deprecated (and nolonger unsafe, see #10) *)
-  val unsafe_write: Cstruct.t -> string -> int -> int -> int
+  val unsafe_write: Cstruct.t -> bytes -> int -> int -> int
   val unsafe_read: Cstruct.t -> bytes -> int -> int -> int
 end
 
