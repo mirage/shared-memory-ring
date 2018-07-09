@@ -1,4 +1,4 @@
-## dev
+## 3.0.1 (2018-07-09)
 
 * Use modern ppx_cstruct to build.
 
