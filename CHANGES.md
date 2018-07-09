@@ -1,3 +1,7 @@
+## dev
+
+* Use modern ppx_cstruct to build.
+
 ## 3.0.0 (2017-11-05)
 
 * Update to use `bytes` in the `read` and `write`, to work with OCaml 4.06 and
