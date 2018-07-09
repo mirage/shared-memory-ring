@@ -4,5 +4,5 @@
   (c_names     (barrier_stubs))
   (libraries   (cstruct))
   (wrapped     false)
-  (preprocess (pps (cstruct.ppx)))
+  (preprocess (pps (ppx_cstruct)))
 ))

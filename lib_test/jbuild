@@ -7,7 +7,7 @@
 (executables
  ((names     (ring_test))
   (libraries (lwt lwt.unix shared-memory-ring oUnit test_library))
-  (preprocess (pps (cstruct.ppx)))
+  (preprocess (pps (ppx_cstruct)))
 ))
 
 (alias
