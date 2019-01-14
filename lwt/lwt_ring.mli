@@ -43,8 +43,8 @@ module Front : sig
       the update, [notify_fn] is called to signal it. *)
 
   val push_request_and_wait : ('a,'b) t -> (unit -> unit) -> (buf -> 'b) -> 'a Lwt.t
-  (** [push_request_and_wait frontend notify_fn req_fn] is [write
-      req_fn >>= fun t -> push notify_fn; return t]. *)
+  (** [push_request_and_wait frontend notify_fn req_fn] is
+      [write req_fn >>= fun t -> push notify_fn; return t]. *)
 
   val push_request_async : ('a,'b) t -> (unit -> unit) -> (buf -> 'b) ->
     ('a Lwt.t -> unit Lwt.t) -> unit Lwt.t
