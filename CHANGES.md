@@ -5,6 +5,7 @@
 * Removed deprecated use of `Lwt_sequence` and depend
   on the equivalent `lwt-dllist` package instead (@avsm)
 * Fix ocamldoc formatting with odoc (@avsm)
+* Travis: test up to OCaml 4.07 (@avsm)
 
 ## 3.0.1 (2018-07-09)
 
