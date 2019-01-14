@@ -15,8 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Printf
-
 type buf = Cstruct.t
 
 let sub t off len = Cstruct.sub t off len
@@ -120,7 +118,7 @@ module Rpc = struct
     unsafe_save_uint32 sring.buf _req_event req_event;
     memory_barrier ()
 
-  let nr_ents sring = sring.nr_ents
+  let _nr_ents sring = sring.nr_ents
 
   let slot sring idx =
     (* TODO should precalculate these and store in the sring? this is fast-path *)
@@ -147,7 +145,7 @@ module Rpc = struct
     let get_free_requests t =
       t.sring.nr_ents - (t.req_prod_pvt - t.rsp_cons)
 
-    let is_ring_full t =
+    let _is_ring_full t =
       get_free_requests t = 0
 
     let has_unconsumed_responses t =
@@ -247,7 +245,7 @@ module Rpc = struct
       t.rsp_prod_pvt <- t.rsp_prod_pvt + 1;
       s
 
-    let next_slot t =
+    let _next_slot t =
       slot t (next_res_id t)
 
     let final_check_for_requests t =

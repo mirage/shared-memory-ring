@@ -15,10 +15,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+[@@@warning "-32"]
 open Ring
 
 module Ring = struct
-	type t = buf
 	let of_buf t = t
 	module Layout = struct
 		(* memory layout from the frontend's point of view *)

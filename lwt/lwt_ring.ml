@@ -24,13 +24,13 @@ module Front = struct
   type ('a, 'b) t = {
     ring: ('a, 'b) Ring.Rpc.Front.t;
     wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
-    waiters: unit Lwt.u Lwt_sequence.t;
+    waiters: unit Lwt.u Lwt_dllist.t;
     string_of_id: 'b -> string;
   }
 
   let init string_of_id ring =
     let wakers = Hashtbl.create 7 in
-    let waiters = Lwt_sequence.create () in
+    let waiters = Lwt_dllist.create () in
     { ring; wakers; waiters; string_of_id }
 
   let rec get_free_slot t =
@@ -38,8 +38,8 @@ module Front = struct
       return (Ring.Rpc.Front.next_req_id t.ring)
     else begin
       let th, u = MProf.Trace.named_task "ring.get_free_slot" in
-      let node = Lwt_sequence.add_r u t.waiters in
-      Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
+      let node = Lwt_dllist.add_r u t.waiters in
+      Lwt.on_cancel th (fun _ -> Lwt_dllist.remove node);
       th >>= fun () ->
       get_free_slot t
     end 
@@ -50,8 +50,8 @@ module Front = struct
     else begin
       assert (n <= Ring.Rpc.Front.nr_ents t.ring);
       let th, u = MProf.Trace.named_task "ring.wait_for_free" in
-      let node = Lwt_sequence.add_r u t.waiters in
-      Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
+      let node = Lwt_dllist.add_r u t.waiters in
+      Lwt.on_cancel th (fun _ -> Lwt_dllist.remove node);
       th >>= fun () ->
       wait_for_free t n
     end
@@ -72,7 +72,7 @@ module Front = struct
                   (Hashtbl.fold (fun k _ acc -> k :: acc) t.wakers [])));
       );
     (* Check for any sleepers waiting for free space *)
-    match Lwt_sequence.take_opt_l t.waiters with
+    match Lwt_dllist.take_opt_l t.waiters with
     |None -> ()
     |Some u -> Lwt.wakeup u ()
 
@@ -109,7 +109,7 @@ module Front = struct
       ) t.wakers;
     (* Check for any sleepers waiting for free space *)
     let rec loop () =
-      match Lwt_sequence.take_opt_l t.waiters with
+      match Lwt_dllist.take_opt_l t.waiters with
       | None -> ()
       | Some u -> Lwt.wakeup_exn u Shutdown; loop ()
     in loop ()

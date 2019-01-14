@@ -13,6 +13,7 @@ depends: [
   "ppx_cstruct"
   "shared-memory-ring"
   "lwt"
+  "lwt-dllist"
   "mirage-profile"
   "ounit" {with-test}
 ]

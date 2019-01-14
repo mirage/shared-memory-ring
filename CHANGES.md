@@ -2,6 +2,8 @@
 
 * Port build from jbuilder to Dune (@avsm).
 * Update opam metadata to the 2.0 format (@avsm). 
+* Removed deprecated use of `Lwt_sequence` and depend
+  on the equivalent `lwt-dllist` package instead (@avsm)
 
 ## 3.0.1 (2018-07-09)
 
