@@ -26,8 +26,8 @@ let alloc_page () =
 let one_request_response () =
   let page = alloc_page () in
   let sring = Ring.Rpc.of_buf ~buf:(Cstruct.of_bigarray page) ~idx_size:1 ~name:"test" in
-  let front = Ring.Rpc.Front.init sring in
-  let back = Ring.Rpc.Back.init sring in
+  let front = Ring.Rpc.Front.init ~sring in
+  let back = Ring.Rpc.Back.init ~sring in
 
   Printf.fprintf stdout "%s\n%!" (Ring.Rpc.Back.to_string back);
   assert_equal ~msg:"more_to_do" ~printer:string_of_bool false (Ring.Rpc.Back.more_to_do back);

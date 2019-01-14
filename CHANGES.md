@@ -4,6 +4,7 @@
 * Update opam metadata to the 2.0 format (@avsm). 
 * Removed deprecated use of `Lwt_sequence` and depend
   on the equivalent `lwt-dllist` package instead (@avsm)
+* Use `noalloc` attribute in external declarations (@avsm)
 * Fix ocamldoc formatting with odoc (@avsm)
 * Travis: test up to OCaml 4.07 (@avsm)
 

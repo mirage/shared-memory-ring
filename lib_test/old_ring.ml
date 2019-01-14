@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Printf
+[@@@warning "-27-32"]
 
 type buf = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
@@ -23,7 +23,7 @@ let sub t off len = Bigarray.Array1.sub t off len
 
 let length t = Bigarray.Array1.dim t
 
-external memory_barrier: unit -> unit = "caml_memory_barrier" "noalloc"
+external memory_barrier: unit -> unit = "caml_memory_barrier" [@@noalloc]
 
 (* Raw ring handling section *)
 (* TODO both of these can be combined into one set of bindings now *)
