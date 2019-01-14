@@ -1,4 +1,4 @@
-## 3.1.0 (2019-01-12)
+## v3.1.0 (2019-01-12)
 
 * Port build from jbuilder to Dune (@avsm).
 * Update opam metadata to the 2.0 format (@avsm). 
