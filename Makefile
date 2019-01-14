@@ -1,21 +1,23 @@
-
-.PHONY: build clean test
+.PHONY: build clean test doc install uninstall
 
 build:
-	jbuilder build @install
+	dune build
+
+doc:
+	dune build @doc
 
 test:
-	jbuilder runtest
+	dune runtest
 
 install:
-	jbuilder install
+	dune install
 
 uninstall:
-	jbuilder uninstall
+	dune uninstall
 
 .PHONY: docker
 docker:
 	docker build -t xen-gnt .
 
 clean:
-	rm -rf _build
+	dune clean

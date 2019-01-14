@@ -15,6 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+[@@@warning "-32"]
+
 open Ring
 
 module Ring = struct

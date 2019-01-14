@@ -1,6 +1,15 @@
+## 3.1.0 (2019-01-12)
+
+* Port build from jbuilder to Dune (@avsm).
+* Update opam metadata to the 2.0 format (@avsm). 
+* Removed deprecated use of `Lwt_sequence` and depend
+  on the equivalent `lwt-dllist` package instead (@avsm)
+* Fix ocamldoc formatting with odoc (@avsm)
+* Travis: test up to OCaml 4.07 (@avsm)
+
 ## 3.0.1 (2018-07-09)
 
-* Use modern ppx_cstruct to build.
+* Use modern `ppx_cstruct` to build.
 
 ## 3.0.0 (2017-11-05)
 
