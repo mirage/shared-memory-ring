@@ -19,7 +19,7 @@ type buf = Cstruct.t
 
 let sub t off len = Cstruct.sub t off len
 
-let length t = Cstruct.len t
+let length t = Cstruct.length t
 
 external memory_barrier: unit -> unit = "caml_memory_barrier" [@@noalloc]
 
@@ -405,7 +405,7 @@ module Pipe(RW: RW) = struct
   (* Backwards compatible string interface: *)
   let read t buf ofs len =
     let seq, frag = Reader.read t in
-    let data_available = Cstruct.len frag in
+    let data_available = Cstruct.length frag in
     let can_read = min len data_available in
     Cstruct.blit_to_bytes frag 0 buf ofs can_read;
     Reader.advance t Int32.(add seq (of_int can_read));
@@ -413,7 +413,7 @@ module Pipe(RW: RW) = struct
 
   let write t buf ofs len =
     let seq, frag = Writer.write t in
-    let free_space = Cstruct.len frag in
+    let free_space = Cstruct.length frag in
     let can_write = min len free_space in
     Cstruct.blit_from_bytes buf ofs frag 0 can_write;
     Writer.advance t Int32.(add seq (of_int can_write));
@@ -443,6 +443,6 @@ module type Bidirectional_byte_stream = sig
 end
 
 let zero t =
-  for i = 0 to Cstruct.len t - 1 do
+  for i = 0 to Cstruct.length t - 1 do
     Cstruct.set_char t i '\000'
   done
