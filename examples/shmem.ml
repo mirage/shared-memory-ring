@@ -57,7 +57,8 @@ module Io_page = struct
     let name = Printf.sprintf "page.%d" address in
     let fd = Unix.openfile name [ Unix.O_CREAT; Unix.O_TRUNC; Unix.O_RDWR ] 0o0644 in
     try
-      let buf = Bigarray.Array1.map_file fd Bigarray.char Bigarray.c_layout true length in
+      let ba = Unix.map_file fd Bigarray.char Bigarray.c_layout true [| -1 |] in
+      let buf = Bigarray.array1_of_genarray ba in
       let offset = 0 in
       let file = { address; offset; length } in
       { buf; file }
@@ -118,10 +119,10 @@ module Gnttab = struct
   let to_string = string_of_int
   let to_int32 = Int32.of_int
 
-  let grant_access ~domid ~perm gnt page = failwith "grant_access"
-  let with_ref r = failwith "with_ref"
-  let with_grant ~domid ~perm gnt page = failwith "with_grant"
-  let with_grants ~domid ~perm gnts pages = failwith "with_grants"
+  let grant_access ~domid:_ ~perm:_ _gnt _page = failwith "grant_access"
+  let with_ref _r = failwith "with_ref"
+  let with_grant ~domid:_ ~perm:_ _gnt _page = failwith "with_grant"
+  let with_grants ~domid:_ ~perm:_ _gnts _pages = failwith "with_grants"
 end
 
 
@@ -135,7 +136,7 @@ module type EVENTCHN = sig
   val notify: handle -> t -> unit
   val to_int: t -> int
   val alloc_unbound_port: handle -> int -> t
-  val bind_interdomain: handle -> int -> int -> t 
+  val bind_interdomain: handle -> int -> int -> t
 
 end
 
@@ -159,7 +160,7 @@ module Eventchn = struct
     h.ports <- List.filter (fun t' -> t' <> t) h.ports
 
   let notify _ (_, fd) =
-    let _ = Unix.write fd "!" 0 1 in
+    let _ = Unix.write fd (Bytes.of_string "!") 0 1 in
     ()
 
   let path_of_port = Printf.sprintf "eventchn.%d"
@@ -171,14 +172,14 @@ module Eventchn = struct
       incr counter;
       result
 
-  let bind_interdomain h domid port =
+  let bind_interdomain h _domid port =
     let path = path_of_port port in
     let sock = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
     let () = Unix.connect sock (Unix.ADDR_UNIX path) in
     h.ports <- (None, sock) :: h.ports;
     (None, sock)
 
-  let alloc_unbound_port h domid =
+  let alloc_unbound_port h _domid =
     let port = free_port () in
     let path = path_of_port port in
     let sock = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
@@ -188,7 +189,7 @@ module Eventchn = struct
     h.ports <- (Some port, fd) :: h.ports;
     (Some port, fd)
 
-  let pending h = failwith "not implemented"
+  let pending _h = failwith "not implemented"
 end
 
 

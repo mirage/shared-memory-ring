@@ -7,7 +7,7 @@ homepage: "https://github.com/mirage/shared-memory-ring"
 doc: "https://mirage.github.io/shared-memory-ring/"
 bug-reports: "https://github.com/mirage/shared-memory-ring/issues"
 depends: [
-  "ocaml" {>= "4.02.0"}
+  "ocaml" {>= "4.08.0"}
   "dune"
   "cstruct" {>= "6.0.0"}
   "ppx_cstruct" {>= "3.2.0"}
@@ -15,7 +15,7 @@ depends: [
   "ounit" {with-test}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
 ]
 dev-repo: "git+https://github.com/mirage/shared-memory-ring.git"
