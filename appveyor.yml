@@ -8,7 +8,6 @@ environment:
     PACKAGE: shared-memory-ring
     CYG_ROOT: C:\cygwin64
   matrix:
-    - OPAM_SWITCH: 4.08.0+msvc32c
     - OPAM_SWITCH: 4.08.0+mingw64c
 
 install:
