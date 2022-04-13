@@ -1,3 +1,8 @@
+## v3.1.1 (2022-04-13)
+
+* Remove the build directive on dune dependency (#39 @CraigFE)
+* Fix compilaion, use OCaml 4.08 as lower bound, cstruct 6.0.0 compatibility (#40 @hannesm)
+
 ## v3.1.0 (2019-01-12)
 
 * Port build from jbuilder to Dune (@avsm).
