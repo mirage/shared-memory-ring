@@ -7,17 +7,19 @@ homepage: "https://github.com/mirage/shared-memory-ring"
 doc: "https://mirage.github.io/shared-memory-ring/"
 bug-reports: "https://github.com/mirage/shared-memory-ring/issues"
 depends: [
-  "ocaml" {>= "4.02.0"}
+  "ocaml" {>= "4.08.0"}
   "dune"
-  "cstruct" {>= "2.4.1"}
+  "cstruct" {>= "6.0.0"}
   "ppx_cstruct" {>= "3.2.0"}
   "mirage-profile"
   "ounit" {with-test}
 ]
 build: [
-  ["dune" "subst"] {pinned}
+  ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
+available: [ arch != "s390x" & arch != "ppc64" ]
 dev-repo: "git+https://github.com/mirage/shared-memory-ring.git"
 synopsis: "Shared memory rings for RPC and bytestream communications"
 description: """

@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-[@@@warning "-27"]
 open OUnit
 
 let ( |> ) a b = b a
@@ -23,7 +22,7 @@ let id x = x
 let alloc_page () =
 	Bigarray.Array1.create Bigarray.char Bigarray.c_layout 4096
 
-let length t = Cstruct.len t
+let length t = Cstruct.length t
 
 let compare_bufs a b =
 	assert_equal ~printer:string_of_int (Bigarray.Array1.dim a) (Bigarray.Array1.dim b);
@@ -166,7 +165,7 @@ let block' =
 
 let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size ~verify () =
 	with_consoles
-		(fun b1 b2 a b ->
+		(fun _b1 _b2 a b ->
 			let read_chunk = String.make read_chunk_size '\000' in
 			let input = bigarray_to_string block' in
 			let length = Bytes.length input in
