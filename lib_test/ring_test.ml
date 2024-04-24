@@ -57,7 +57,7 @@ let xenstore_init () =
 let xenstore_hello () =
 	let msg = "hello" in
 	let msg' = Bytes.of_string msg in
-	let buf = String.make 16 '\000' in
+	let buf = Bytes.make 16 '\000' in
 	let buf' = Bytes.make 16 '\000' in
 	with_xenstores
 		(fun b1 b2 a b ->
@@ -68,9 +68,9 @@ let xenstore_hello () =
 			let x = Xenstore_ring.Ring.Back.unsafe_read a buf' 0 (Bytes.length buf') in
 			assert_equal ~printer:string_of_int x (String.length msg);
 			assert_equal msg' (Bytes.sub buf' 0 x);
-			let x = Old_ring.C_Xenstore.Back.unsafe_read b buf (String.length buf) in
+			let x = Old_ring.C_Xenstore.Back.unsafe_read b buf (Bytes.length buf) in
 			assert_equal ~printer:string_of_int x (String.length msg);
-			assert_equal msg (String.sub buf 0 x);
+			assert_equal msg (Bytes.to_string (Bytes.sub buf 0 x));
 			()
 		)
 
@@ -118,7 +118,7 @@ let check_signed_unsigned_write () =
 
 let check_signed_unsigned_read () =
 	let msg = "this is a test" in
-	let buf = String.make (String.length msg) '\000' in
+	let buf = Bytes.make (String.length msg) '\000' in
 	let buf' = Bytes.make (String.length msg) '\000' in
 	with_xenstores
 		(fun b1 b2 a b ->
@@ -127,7 +127,7 @@ let check_signed_unsigned_read () =
 			set_ring_output_cons (Cstruct.of_bigarray b2) (Int32.(pred (pred max_int)));
  			set_ring_output_prod (Cstruct.of_bigarray b2) (Int32.(succ (succ max_int)));
 			let x' = Xenstore_ring.Ring.Back.unsafe_read a buf' 0 (Bytes.length buf') in
-			let y' = Old_ring.C_Xenstore.Back.unsafe_read b buf (String.length buf) in
+			let y' = Old_ring.C_Xenstore.Back.unsafe_read b buf (Bytes.length buf) in
 			assert_equal ~printer:string_of_int x' y';
 			compare_bufs b1 b2;
 		)
@@ -150,7 +150,7 @@ let console_init () =
 let console_hello () =
 	let msg = "hello" in
 	let msg' = Bytes.of_string msg in
-	let buf = String.make 16 '\000' in
+	let buf = Bytes.make 16 '\000' in
 	let buf' = Bytes.make 16 '\000' in
 	with_consoles
 		(fun b1 b2 a b ->
@@ -161,9 +161,9 @@ let console_hello () =
 			let x = Console_ring.Ring.Back.unsafe_read a buf' 0 (Bytes.length buf') in
 			assert_equal ~printer:string_of_int x (Bytes.length msg');
 			assert_equal msg (Bytes.to_string @@ Bytes.sub buf' 0 x);
-			let x = Old_ring.C_Console.Back.unsafe_read b buf (String.length buf) in
+			let x = Old_ring.C_Console.Back.unsafe_read b buf (Bytes.length buf) in
 			assert_equal ~printer:string_of_int x (String.length msg);
-			assert_equal msg (String.sub buf 0 x);
+			assert_equal msg (Bytes.to_string (Bytes.sub buf 0 x));
 			()
 		)
 
@@ -180,7 +180,7 @@ let block' =
 let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size ~verify () =
 	with_consoles
 		(fun _b1 _b2 a b ->
-			let read_chunk = String.make read_chunk_size '\000' in
+			let read_chunk = Bytes.make read_chunk_size '\000' in
 			let input = bigarray_to_string block' in
 			let length = Bytes.length input in
 			let output = Bytes.make length 'X' in
@@ -205,7 +205,7 @@ let throughput_test ~use_ocaml ~write_chunk_size ~read_chunk_size ~verify () =
 						let n = Old_ring.C_Console.Back.unsafe_read b read_chunk can_read in
 						begin
 							try
-								String.blit read_chunk 0 output !consumer n
+								Bytes.blit read_chunk 0 output !consumer n
 							with e ->
 								Printf.fprintf stderr "String.blit consumed=%d n=%d\n%!" !consumer n;
 								raise e
