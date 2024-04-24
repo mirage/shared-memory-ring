@@ -1,3 +1,9 @@
+## v3.2.0 (2024-04-24)
+
+* revive example client (#41 @adatario)
+* drop mirage-profile and ppx_cstruct dependency (#43 @hannesm #41 @adatario)
+* shared-memory-ring-lwt: depend on shared-memory-ring =version
+
 ## v3.1.1 (2022-04-13)
 
 * Remove the build directive on dune dependency (#39 @CraigFE)
