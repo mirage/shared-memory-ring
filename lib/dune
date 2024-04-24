@@ -3,6 +3,4 @@
  (public_name shared-memory-ring)
  (c_names barrier_stubs)
  (libraries cstruct)
- (wrapped false)
- (preprocess
-  (pps ppx_cstruct)))
+ (wrapped false))

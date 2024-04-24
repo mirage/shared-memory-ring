@@ -63,7 +63,7 @@ let xenstore_hello () =
 		(fun b1 b2 a b ->
 			let x = Xenstore_ring.Ring.Front.unsafe_write a msg' 0 (Bytes.length msg') in
 			let y = Old_ring.C_Xenstore.unsafe_write b msg (String.length msg) in
-			assert_equal ~printer:string_of_int x y;
+                        assert_equal ~printer:string_of_int x y;
 			compare_bufs b1 b2;
 			let x = Xenstore_ring.Ring.Back.unsafe_read a buf' 0 (Bytes.length buf') in
 			assert_equal ~printer:string_of_int x (String.length msg);
@@ -74,16 +74,30 @@ let xenstore_hello () =
 			()
 		)
 
-[%%cstruct
 type ring = {
-	output: uint8_t [@len 1024];
-	input: uint8_t [@len 1024];
-	output_cons: uint32_t;
-	output_prod: uint32_t;
-	input_cons: uint32_t;
-	input_prod: uint32_t;
-} [@@little_endian]
-]
+	output: Cstruct.t [@len 1024];
+	input: Cstruct.t [@len 1024];
+	output_cons: int32;
+	output_prod: int32;
+	input_cons: int32;
+	input_prod: int32;
+}
+let get_ring_output c = Cstruct.sub c 0 1024
+let set_ring_output c data = Cstruct.blit data 0 c 0 (Cstruct.length data)
+let get_ring_input c = Cstruct.sub c 1024 1024
+let set_ring_input c data = Cstruct.blit data 0 c 1024 (Cstruct.length data)
+let _input_cons  = 2048
+let _input_prod  = _input_cons + 4
+let _output_cons = _input_prod + 4
+let _output_prod = _output_cons  + 4
+let get_ring_output_cons c = Int32.of_int (Ring.unsafe_load_uint32 c _output_cons)
+let get_ring_output_prod c = Int32.of_int (Ring.unsafe_load_uint32 c _output_prod)
+let get_ring_input_cons  c = Int32.of_int (Ring.unsafe_load_uint32 c _input_cons)
+let get_ring_input_prod  c = Int32.of_int (Ring.unsafe_load_uint32 c _input_prod)
+let set_ring_output_cons c x = Ring.unsafe_save_uint32 c _output_cons (Int32.to_int x)
+let set_ring_output_prod c x = Ring.unsafe_save_uint32 c _output_prod (Int32.to_int x)
+let set_ring_input_cons  c x = Ring.unsafe_save_uint32 c _input_cons (Int32.to_int x)
+let set_ring_input_prod  c x = Ring.unsafe_save_uint32 c _input_prod (Int32.to_int x)
 
 let check_signed_unsigned_write () =
 	(* Check for errors performing comparison across int32 max_int *)
@@ -231,10 +245,8 @@ let _ =
   let suite = "ring" >:::
     [
 		"xenstore_init" >:: xenstore_init;
-(* XXX need to diagnose the ARM failure:
 		"check_signed_unsigned_read" >:: check_signed_unsigned_read;
 		"check_signed_unsigned_write" >:: check_signed_unsigned_write;
-*)
                 "xenstore_hello" >:: xenstore_hello;
 		"console_init" >:: console_init;
 		"console_hello" >:: console_hello;
