@@ -15,14 +15,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-[@@@warning "-32"]
 open Ring
 
 module Ring = struct
-	let of_buf t = t
 	module Layout = struct
 		(* memory layout from the frontend's point of view *)
-		[%%cstruct
+                (*
 		type ring = {
 			output: uint8_t [@len 1024];
 			input: uint8_t [@len 1024];
@@ -33,7 +31,9 @@ module Ring = struct
 			input_prod: uint32_t;
 			*)
 		} [@@little_endian]
-		]
+                *)
+                let get_ring_output c = Cstruct.sub c 0 1024
+                let get_ring_input c = Cstruct.sub c 1024 1024
 		let _output_cons = 2048
 		let _output_prod = _output_cons + 4
 		let _input_cons  = _output_prod + 4
