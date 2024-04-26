@@ -1,3 +1,7 @@
+## v3.2.1 (2024-04-26)
+
+* move lwt tests to shared-memory-ring-lwt (@hannesm)
+
 ## v3.2.0 (2024-04-24)
 
 * revive example client (#41 @adatario)
