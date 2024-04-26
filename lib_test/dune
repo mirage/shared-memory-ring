@@ -5,5 +5,5 @@
 
 (test
  (name ring_test)
- (libraries lwt lwt.unix shared-memory-ring oUnit test_library)
+ (libraries shared-memory-ring oUnit test_library)
  (package shared-memory-ring))
