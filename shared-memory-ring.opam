@@ -36,3 +36,4 @@ Example use:
 A Xen virtual machine wishes to send and receive network packets to
 and from a backend driver domain.
 """
+x-maintenance-intent: [ "(latest)" ]
