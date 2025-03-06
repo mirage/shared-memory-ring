@@ -28,3 +28,4 @@ producer/consumer rings, using the Lwt concurrency library to handle blocking.
 The rings follow the Xen ABI and may be used to create or implement Xen virtual
 devices.
 """
+x-maintenance-intent: [ "(latest)" ]
